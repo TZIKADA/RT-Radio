@@ -10,6 +10,12 @@ The client-side of the server where users can get their personalized header for 
 3. Run `npm install`.
 4. Run `npm run dev`.
 
+## Testing
+
+Run the automated test suite once with `npm test`, or use `npm run test:watch`
+while developing. Tests run in jsdom and mock Supabase, so they do not require
+project credentials or make network requests.
+
 ## Usage
 
 1. **Enter the site.**
