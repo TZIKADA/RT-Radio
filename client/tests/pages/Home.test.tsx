@@ -116,6 +116,24 @@ describe("Home", () => {
         expect(supabaseMocks.from).toHaveBeenCalledOnce();
     });
 
+    it("toggles the color theme from the home page", async () => {
+        const user = userEvent.setup();
+        document.documentElement.setAttribute("data-bs-theme", "dark");
+        renderHome();
+
+        await user.click(
+            screen.getByRole("button", { name: "Switch to light mode" }),
+        );
+
+        expect(document.documentElement).toHaveAttribute(
+            "data-bs-theme",
+            "light",
+        );
+        expect(
+            screen.getByRole("button", { name: "Switch to dark mode" }),
+        ).toBeInTheDocument();
+    });
+
     it("shows a clear error state when assignments cannot be loaded", async () => {
         const consoleError = vi
             .spyOn(console, "error")
