@@ -1,0 +1,9 @@
+{
+  "lsp": {
+    "arduino-language-server": {
+      "binary": {
+        "arguments": ["-fqbn", "esp32:esp32:esp32", "-cli-config", "/var/home/dan/.arduino15/arduino-cli.yaml"],
+      },
+    },
+  },
+}
