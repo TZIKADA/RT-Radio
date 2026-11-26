@@ -2,11 +2,16 @@ import { useEffect, useState } from "react";
 import { Button, Card, Container, Modal } from "react-bootstrap";
 import { supabase } from "../lib/supabase";
 
+type Todo = {
+    id: string | number;
+    name: string;
+};
+
 export default function Home() {
     const [showDocs, setShowDocs] = useState(false);
-    const [todos, setTodos] = useState([]);
+    const [todos, setTodos] = useState<Todo[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         async function getTodos() {
