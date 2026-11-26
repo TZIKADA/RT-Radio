@@ -1,8 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Session } from "@supabase/supabase-js";
 import { MemoryRouter, Route, Routes } from "react-router";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AuthContext } from "../../src/scripts/auth-context";
 import AuthCard from "../../src/components/AuthCard";
 import RequireAuth from "../../src/components/RequireAuth";
@@ -39,6 +39,33 @@ describe("AuthCard", () => {
 });
 
 describe("ThemeToggle", () => {
+    it("uses the system preference when no theme has been selected", () => {
+        document.documentElement.removeAttribute("data-bs-theme");
+        vi.stubGlobal(
+            "matchMedia",
+            vi.fn().mockReturnValue({ matches: true }),
+        );
+        render(<ThemeToggle />);
+
+        expect(
+            screen.getByRole("button", { name: "Switch to light mode" }),
+        ).toBeInTheDocument();
+
+        vi.unstubAllGlobals();
+    });
+
+    it("updates the toggle when the system theme changes", () => {
+        document.documentElement.setAttribute("data-bs-theme", "dark");
+        render(<ThemeToggle />);
+
+        document.documentElement.setAttribute("data-bs-theme", "light");
+        act(() => window.dispatchEvent(new Event("system-theme-change")));
+
+        expect(
+            screen.getByRole("button", { name: "Switch to dark mode" }),
+        ).toBeInTheDocument();
+    });
+
     it("switches the document theme and its icon", async () => {
         const user = userEvent.setup();
         document.documentElement.setAttribute("data-bs-theme", "dark");
