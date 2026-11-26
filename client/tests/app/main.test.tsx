@@ -9,12 +9,12 @@ const rootMocks = vi.hoisted(() => ({
 vi.mock("react-dom/client", () => ({
     createRoot: rootMocks.createRoot,
 }));
-vi.mock("./App", () => ({ default: () => null }));
-vi.mock("./components/AuthProvider", () => ({
+vi.mock("../../src/App", () => ({ default: () => null }));
+vi.mock("../../src/components/AuthProvider", () => ({
     default: ({ children }: { children: ReactNode }) => children,
 }));
 vi.mock("bootstrap-icons/font/bootstrap-icons.css", () => ({}));
-vi.mock("./styles/main.scss", () => ({}));
+vi.mock("../../src/styles/main.scss", () => ({}));
 
 describe("application entry point", () => {
     beforeEach(() => {
@@ -23,7 +23,7 @@ describe("application entry point", () => {
     });
 
     it("mounts the React application into the root element", async () => {
-        await import("./main");
+        await import("../../src/main");
 
         expect(rootMocks.createRoot).toHaveBeenCalledWith(
             document.getElementById("root"),

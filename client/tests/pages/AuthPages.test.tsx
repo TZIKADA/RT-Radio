@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import type { Session } from "@supabase/supabase-js";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthContext } from "../scripts/auth-context";
+import { AuthContext } from "../../src/scripts/auth-context";
 
 const supabaseMocks = vi.hoisted(() => ({
     signInWithPassword: vi.fn(),
@@ -15,7 +15,7 @@ const supabaseMocks = vi.hoisted(() => ({
     unsubscribe: vi.fn(),
 }));
 
-vi.mock("../lib/supabase", () => ({
+vi.mock("../../src/lib/supabase", () => ({
     supabase: {
         auth: {
             signInWithPassword: supabaseMocks.signInWithPassword,
@@ -28,11 +28,11 @@ vi.mock("../lib/supabase", () => ({
     },
 }));
 
-import AuthProvider from "../components/AuthProvider";
-import ForgotPassword from "./ForgotPassword";
-import Login from "./Login";
-import ResetPassword from "./ResetPassword";
-import SignUp from "./SignUp";
+import AuthProvider from "../../src/components/AuthProvider";
+import ForgotPassword from "../../src/pages/ForgotPassword";
+import Login from "../../src/pages/Login";
+import ResetPassword from "../../src/pages/ResetPassword";
+import SignUp from "../../src/pages/SignUp";
 
 function renderWithAuth(
     page: React.ReactNode,
