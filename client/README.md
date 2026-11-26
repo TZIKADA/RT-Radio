@@ -14,7 +14,8 @@ The client-side of the server where users can get their personalized header for 
 
 Run the automated test suite once with `npm test`, or use `npm run test:watch`
 while developing. Tests run in jsdom and mock Supabase, so they do not require
-project credentials or make network requests.
+project credentials or make network requests. Test files are collected in
+`tests/`, grouped into `app/`, `components/`, `pages/`, and `lib/`.
 
 ## Usage
 

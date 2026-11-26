@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import type { Session } from "@supabase/supabase-js";
-import { useAuth } from "../scripts/useAuth";
+import { useAuth } from "../../src/scripts/useAuth";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
@@ -9,7 +9,7 @@ const authMocks = vi.hoisted(() => ({
     unsubscribe: vi.fn(),
 }));
 
-vi.mock("../lib/supabase", () => ({
+vi.mock("../../src/lib/supabase", () => ({
     supabase: {
         auth: {
             getSession: authMocks.getSession,
@@ -18,7 +18,7 @@ vi.mock("../lib/supabase", () => ({
     },
 }));
 
-import AuthProvider from "./AuthProvider";
+import AuthProvider from "../../src/components/AuthProvider";
 
 function AuthStateProbe() {
     const { session, loading } = useAuth();

@@ -3,10 +3,10 @@ import userEvent from "@testing-library/user-event";
 import type { Session } from "@supabase/supabase-js";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { describe, expect, it } from "vitest";
-import { AuthContext } from "../scripts/auth-context";
-import AuthCard from "./AuthCard";
-import RequireAuth from "./RequireAuth";
-import ThemeToggle from "./ToggleTheme";
+import { AuthContext } from "../../src/scripts/auth-context";
+import AuthCard from "../../src/components/AuthCard";
+import RequireAuth from "../../src/components/RequireAuth";
+import ThemeToggle from "../../src/components/ToggleTheme";
 
 describe("AuthCard", () => {
     it("renders its title and child content", () => {

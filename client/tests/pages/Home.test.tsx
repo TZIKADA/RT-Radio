@@ -7,11 +7,11 @@ const supabaseMocks = vi.hoisted(() => ({
     select: vi.fn(),
 }));
 
-vi.mock("../lib/supabase", () => ({
+vi.mock("../../src/lib/supabase", () => ({
     supabase: { from: supabaseMocks.from },
 }));
 
-import Home from "./Home";
+import Home from "../../src/pages/Home";
 
 describe("Home", () => {
     beforeEach(() => {
