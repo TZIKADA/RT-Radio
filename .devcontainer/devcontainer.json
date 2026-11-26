@@ -1,0 +1,10 @@
+{
+  "name": "RT-Radio Client",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:5-24-trixie",
+
+  // mount the whole repo (so git works), but open in client/
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}/client",
+
+  "forwardPorts": [5173, 4173],
+  "postCreateCommand": "npm ci",
+}
