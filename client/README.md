@@ -24,9 +24,17 @@ project credentials or make network requests. Test files are collected in
     - Provide random data, used for internal hashing of headers.
     - Optionally provide contact information, used for personalization assistance.
 3. **Sign in**
-    - Your personal space will contain one or more cards.
-    - Each card contains a doc and a download option.
-4. **Personalize**
-    - You can manage the various fields of your profile at any time.
+    - The home page lists headers assigned to your account through
+      `user_headers`. Card names and descriptions come from `headers`.
+    - Download buttons create a 60-second signed URL for the private
+      `headers` Storage bucket using each row's `storage_path`.
+4. **Manage your account**
+    - Open **Account** to update your Supabase Auth email address or password.
+      Email changes may require confirmation based on your Supabase settings.
 
-> **Warning:** Reinstall the header after editing your profile.
+The app relies on the existing row-level security policies for `user_headers`
+and `headers` to restrict the list of assigned headers.
+The provided database schema does not include Storage object policies; signed
+URL creation also requires authenticated `SELECT` access to the matching rows
+in `storage.objects`. Ensure that policy limits access to paths assigned to
+the current user.
