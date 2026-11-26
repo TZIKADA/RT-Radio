@@ -13,7 +13,12 @@ export default function ThemeToggle() {
     }
 
     return (
-        <Button variant="outline-secondary" size="sm" onClick={toggle}>
+        <Button
+            variant="outline-secondary"
+            size="sm"
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            onClick={toggle}
+        >
             <i className={`bi ${theme === "dark" ? "bi-sun" : "bi-moon"}`}></i>
         </Button>
     );

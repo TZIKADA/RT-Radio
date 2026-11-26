@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Button, Card, Container, Row, Col } from "react-bootstrap";
 import { Link } from "react-router";
+import ThemeToggle from "../components/ToggleTheme";
 import { supabase } from "../lib/supabase";
 
 type HeaderRecord = {
@@ -100,12 +101,15 @@ export default function Home() {
     return (
         <Container className="py-5">
             <header className="d-flex justify-content-between align-items-center mb-5">
-                <Link to="/" className="text-decoration-none text-dark">
+                <Link to="/" className="text-decoration-none text-body">
                     <span className="h3 mb-0">RT-Radio</span>
                 </Link>
-                <Link to="/account" className="btn btn-outline-secondary">
-                    Account
-                </Link>
+                <div className="d-flex align-items-center gap-2">
+                    <Link to="/account" className="btn btn-outline-secondary">
+                        Account
+                    </Link>
+                    <ThemeToggle />
+                </div>
             </header>
 
             <main>
