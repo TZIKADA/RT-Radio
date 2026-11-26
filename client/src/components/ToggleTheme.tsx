@@ -1,14 +1,33 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "react-bootstrap";
 
+function getCurrentTheme() {
+    const theme = document.documentElement.getAttribute("data-bs-theme");
+    if (theme === "dark" || theme === "light") return theme;
+
+    return typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+}
+
 export default function ThemeToggle() {
-    const [theme, setTheme] = useState<string>(
-        document.documentElement.getAttribute("data-bs-theme") ?? "dark",
-    );
+    const [theme, setTheme] = useState(getCurrentTheme);
+
+    useEffect(() => {
+        function syncTheme() {
+            setTheme(getCurrentTheme());
+        }
+
+        window.addEventListener("system-theme-change", syncTheme);
+        return () =>
+            window.removeEventListener("system-theme-change", syncTheme);
+    }, []);
 
     function toggle() {
         const next = theme === "dark" ? "light" : "dark";
         document.documentElement.setAttribute("data-bs-theme", next);
+        document.documentElement.dataset.themeOverride = "true";
         setTheme(next);
     }
 
