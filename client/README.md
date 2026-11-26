@@ -2,6 +2,14 @@
 
 The client-side of the server where users can get their personalized header for `RT-Radio`.
 
+## Setup
+
+1. Copy `.env.example` to `.env.local`.
+2. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to the values from
+   your Supabase project.
+3. Run `npm install`.
+4. Run `npm run dev`.
+
 ## Usage
 
 1. **Enter the site.**
