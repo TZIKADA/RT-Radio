@@ -1,76 +1,183 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router";
 
 const supabaseMocks = vi.hoisted(() => ({
     from: vi.fn(),
-    select: vi.fn(),
+    assignmentsSelect: vi.fn(),
+    headersSelect: vi.fn(),
+    headersIn: vi.fn(),
+    headersOrder: vi.fn(),
+    storageFrom: vi.fn(),
+    createSignedUrl: vi.fn(),
 }));
 
 vi.mock("../../src/lib/supabase", () => ({
-    supabase: { from: supabaseMocks.from },
+    supabase: {
+        from: supabaseMocks.from,
+        storage: { from: supabaseMocks.storageFrom },
+    },
 }));
 
 import Home from "../../src/pages/Home";
 
 describe("Home", () => {
     beforeEach(() => {
-        supabaseMocks.from.mockReturnValue({ select: supabaseMocks.select });
-        supabaseMocks.select.mockResolvedValue({ data: [], error: null });
+        const headersQuery = {
+            select: supabaseMocks.headersSelect,
+            in: supabaseMocks.headersIn,
+            order: supabaseMocks.headersOrder,
+        };
+        supabaseMocks.from.mockImplementation((table: string) =>
+            table === "user_headers"
+                ? { select: supabaseMocks.assignmentsSelect }
+                : headersQuery,
+        );
+        supabaseMocks.assignmentsSelect.mockResolvedValue({
+            data: [],
+            error: null,
+        });
+        supabaseMocks.headersSelect.mockReturnValue(headersQuery);
+        supabaseMocks.headersIn.mockReturnValue(headersQuery);
+        supabaseMocks.headersOrder.mockResolvedValue({
+            data: [],
+            error: null,
+        });
+        supabaseMocks.storageFrom.mockReturnValue({
+            createSignedUrl: supabaseMocks.createSignedUrl,
+        });
     });
 
-    it("loads and displays todos, and shows the documentation dialog", async () => {
-        const user = userEvent.setup();
-        supabaseMocks.select.mockResolvedValue({
+    function renderHome() {
+        return render(
+            <MemoryRouter>
+                <Home />
+            </MemoryRouter>,
+        );
+    }
+
+    it("loads assigned headers and displays their download cards", async () => {
+        supabaseMocks.assignmentsSelect.mockResolvedValue({
+            data: [{ header_id: "header-1" }, { header_id: "header-2" }],
+            error: null,
+        });
+        supabaseMocks.headersOrder.mockResolvedValue({
             data: [
-                { id: 1, name: "Tune the radio" },
-                { id: 2, name: "Install the header" },
+                {
+                    id: "header-1",
+                    name: "Main Header File",
+                    description: "Primary header",
+                    storage_path: "main/header.zip",
+                },
+                {
+                    id: "header-2",
+                    name: "Alternate Header",
+                    description: null,
+                    storage_path: "alternate/header.zip",
+                },
             ],
             error: null,
         });
-        render(<Home />);
+        renderHome();
 
-        expect(screen.getByText("Loading…")).toBeInTheDocument();
-        expect(await screen.findByText("Tune the radio")).toBeInTheDocument();
-        expect(screen.getByText("Install the header")).toBeInTheDocument();
-        expect(supabaseMocks.from).toHaveBeenCalledWith("todos");
-        expect(supabaseMocks.select).toHaveBeenCalledOnce();
-
-        await user.click(screen.getByRole("button", { name: "Documentation" }));
         expect(
-            screen.getByRole("heading", { name: "Documentation" }),
+            await screen.findByRole("heading", { name: "Main Header File" }),
         ).toBeInTheDocument();
-        await user.click(
-            within(screen.getByRole("dialog"))
-                .getAllByRole("button", { name: "Close" })
-                .at(-1)!,
+        expect(
+            screen.getByRole("heading", { name: "Alternate Header" }),
+        ).toBeInTheDocument();
+        expect(screen.getByText("Primary header")).toBeInTheDocument();
+        expect(supabaseMocks.from).toHaveBeenNthCalledWith(1, "user_headers");
+        expect(supabaseMocks.assignmentsSelect).toHaveBeenCalledWith(
+            "header_id",
         );
-        await waitFor(() =>
-            expect(
-                screen.queryByRole("heading", { name: "Documentation" }),
-            ).not.toBeInTheDocument(),
+        expect(supabaseMocks.from).toHaveBeenNthCalledWith(2, "headers");
+        expect(supabaseMocks.headersSelect).toHaveBeenCalledWith(
+            "id,name,description,storage_path",
         );
+        expect(supabaseMocks.headersIn).toHaveBeenCalledWith("id", [
+            "header-1",
+            "header-2",
+        ]);
+        expect(
+            screen.getAllByRole("button", { name: "Download" }),
+        ).toHaveLength(2);
     });
 
-    it("shows an empty state when there are no todos", async () => {
-        render(<Home />);
+    it("does not fetch header rows when the user has no assignments", async () => {
+        renderHome();
 
-        expect(await screen.findByText("No todos yet.")).toBeInTheDocument();
+        expect(
+            await screen.findByText(
+                "No downloadable headers are assigned to your account yet. Ask an administrator to add them to your user_headers list.",
+            ),
+        ).toBeInTheDocument();
+        expect(supabaseMocks.from).toHaveBeenCalledOnce();
     });
 
-    it("shows a clear error state when loading todos fails", async () => {
+    it("shows a clear error state when assignments cannot be loaded", async () => {
         const consoleError = vi
             .spyOn(console, "error")
             .mockImplementation(() => {});
-        supabaseMocks.select.mockResolvedValue({
+        supabaseMocks.assignmentsSelect.mockResolvedValue({
             data: null,
-            error: { message: "Database unavailable" },
+            error: {
+                code: "PGRST116",
+                message: "Database unavailable",
+            },
         });
-        render(<Home />);
+        renderHome();
 
         expect(
-            await screen.findByText("Failed to load todos: Database unavailable"),
+            await screen.findByText(
+                "Failed to load headers: Database unavailable",
+            ),
         ).toBeInTheDocument();
         expect(consoleError).toHaveBeenCalledOnce();
+        consoleError.mockRestore();
+    });
+
+    it("shows errors when a private file cannot be signed", async () => {
+        const user = userEvent.setup();
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        supabaseMocks.assignmentsSelect.mockResolvedValue({
+            data: [{ header_id: "header-1" }],
+            error: null,
+        });
+        supabaseMocks.headersOrder.mockResolvedValue({
+            data: [
+                {
+                    id: "header-1",
+                    name: "Main Header File",
+                    description: null,
+                    storage_path: "main/header.zip",
+                },
+            ],
+            error: null,
+        });
+        supabaseMocks.createSignedUrl.mockResolvedValue({
+            data: null,
+            error: { message: "Storage unavailable" },
+        });
+        renderHome();
+
+        await user.click(
+            await screen.findByRole("button", { name: "Download" }),
+        );
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "Storage unavailable",
+        );
+        expect(supabaseMocks.storageFrom).toHaveBeenCalledWith("headers");
+        expect(supabaseMocks.createSignedUrl).toHaveBeenCalledWith(
+            "main/header.zip",
+            60,
+            { download: true },
+        );
+        expect(consoleError).toHaveBeenCalledOnce();
+        consoleError.mockRestore();
     });
 });

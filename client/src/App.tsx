@@ -5,6 +5,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import SignUp from "./pages/SignUp";
 import Home from "./pages/Home";
+import Account from "./pages/Account";
 
 export default function App() {
     return (
@@ -16,6 +17,7 @@ export default function App() {
 
             <Route element={<RequireAuth />}>
                 <Route path="/" element={<Home />} />
+                <Route path="/account" element={<Account />} />
             </Route>
         </Routes>
     );

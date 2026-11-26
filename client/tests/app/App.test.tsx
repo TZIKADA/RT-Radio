@@ -6,7 +6,10 @@ import { AuthContext } from "../../src/scripts/auth-context";
 
 const supabaseMocks = vi.hoisted(() => ({
     from: vi.fn(),
-    select: vi.fn(),
+    assignmentsSelect: vi.fn(),
+    headersSelect: vi.fn(),
+    headersIn: vi.fn(),
+    headersOrder: vi.fn(),
 }));
 
 vi.mock("../../src/lib/supabase", () => ({
@@ -17,8 +20,23 @@ import App from "../../src/App";
 
 describe("App routes", () => {
     beforeEach(() => {
-        supabaseMocks.from.mockReturnValue({ select: supabaseMocks.select });
-        supabaseMocks.select.mockResolvedValue({ data: [], error: null });
+        const headersQuery = {
+            select: supabaseMocks.headersSelect,
+            in: supabaseMocks.headersIn,
+            order: supabaseMocks.headersOrder,
+        };
+        supabaseMocks.from.mockImplementation((table: string) =>
+            table === "user_headers"
+                ? { select: supabaseMocks.assignmentsSelect }
+                : headersQuery,
+        );
+        supabaseMocks.assignmentsSelect.mockResolvedValue({
+            data: [],
+            error: null,
+        });
+        supabaseMocks.headersSelect.mockReturnValue(headersQuery);
+        supabaseMocks.headersIn.mockReturnValue(headersQuery);
+        supabaseMocks.headersOrder.mockResolvedValue({ data: [], error: null });
     });
 
     function renderAt(path: string, session: Session | null = null) {
@@ -57,10 +75,21 @@ describe("App routes", () => {
     });
 
     it("renders the protected home route when signed in", async () => {
-        renderAt("/", {} as Session);
+        renderAt("/", { user: { email: "user@example.com" } } as Session);
 
         expect(
-            await screen.findByRole("heading", { name: "Main Header File" }),
+            await screen.findByRole("heading", { name: "Your headers" }),
+        ).toBeInTheDocument();
+    });
+
+    it("renders the protected account route when signed in", () => {
+        renderAt(
+            "/account",
+            { user: { email: "user@example.com" } } as Session,
+        );
+
+        expect(
+            screen.getByRole("heading", { name: "Account settings" }),
         ).toBeInTheDocument();
     });
 });
