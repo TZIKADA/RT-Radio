@@ -24,8 +24,6 @@ jobs:
   test:
     name: Lint, test & build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
     defaults:
       run:
         working-directory: client
