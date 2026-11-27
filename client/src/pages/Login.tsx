@@ -47,7 +47,7 @@ export default function Login() {
     }
 
     return (
-        <AuthCard title="Login">
+        <AuthCard title={t("login")}>
             <Form onSubmit={handleSubmit}>
                 {error && <AdminErrorAlert message={error} />}
 

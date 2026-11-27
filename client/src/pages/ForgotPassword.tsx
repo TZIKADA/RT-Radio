@@ -74,9 +74,7 @@ export default function ForgotPassword() {
 
                     <div className="d-grid gap-2">
                         <Button type="submit" variant="primary" disabled={busy}>
-                            {busy
-                                ? t("sending")
-                                : t("sendResetLink")}
+                            {busy ? t("sending") : t("sendResetLink")}
                         </Button>
                         <Link to="/login" className="btn btn-outline-secondary">
                             {t("backToLogin")}
