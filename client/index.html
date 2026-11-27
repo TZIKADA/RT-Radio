@@ -1,10 +1,35 @@
 <!doctype html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en">
     <head>
         <meta charset="UTF-8" />
         <link rel="icon" type="image/x-icon" href="/favicon.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>RT-Radio</title>
+        <script>
+            const themePreference = window.matchMedia(
+                "(prefers-color-scheme: dark)",
+            );
+            const savedTheme = localStorage.getItem("rt-radio-theme");
+            const applySystemTheme = () => {
+                if (document.documentElement.dataset.themeOverride !== "true") {
+                    document.documentElement.setAttribute(
+                        "data-bs-theme",
+                        themePreference.matches ? "dark" : "light",
+                    );
+                    window.dispatchEvent(new Event("system-theme-change"));
+                }
+            };
+            if (savedTheme === "light" || savedTheme === "dark") {
+                document.documentElement.setAttribute(
+                    "data-bs-theme",
+                    savedTheme,
+                );
+                document.documentElement.dataset.themeOverride = "true";
+            } else {
+                applySystemTheme();
+            }
+            themePreference.addEventListener("change", applySystemTheme);
+        </script>
     </head>
     <body>
         <div id="root"></div>

@@ -3,8 +3,12 @@ import { Link } from "react-router";
 import { Alert, Button, Form } from "react-bootstrap";
 import AuthCard from "../components/AuthCard";
 import { supabase } from "../lib/supabase";
+import { useTranslation } from "../components/LanguageProvider";
+import AdminErrorAlert from "../components/AdminErrorAlert";
+import { logAppError } from "../lib/errors";
 
 export default function ForgotPassword() {
+    const { t } = useTranslation();
     const [email, setEmail] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
@@ -15,45 +19,49 @@ export default function ForgotPassword() {
         setBusy(true);
         setError(null);
 
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-            email,
-            { redirectTo: `${window.location.origin}/reset-password` },
-        );
+        try {
+            const { error: resetError } =
+                await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/reset-password`,
+                });
 
-        setBusy(false);
-        if (resetError) {
-            setError(resetError.message);
-            return;
+            if (resetError) {
+                logAppError("Requesting password reset failed", resetError);
+                setError(t("requestFailed"));
+                return;
+            }
+            setSent(true);
+        } catch (resetError) {
+            logAppError("Requesting password reset failed", resetError);
+            setError(t("requestFailed"));
+        } finally {
+            setBusy(false);
         }
-        setSent(true);
     }
 
     return (
-        <AuthCard title="Forgot password">
+        <AuthCard title={t("forgotPassword")}>
             {sent ? (
                 <>
                     <Alert variant="success">
-                        If an account exists for <strong>{email}</strong>, we
-                        sent a link to reset your password. Check your inbox
-                        (and spam folder).
+                        {t("confirmationSent").replace("{email}", email)}
                     </Alert>
                     <div className="d-grid">
                         <Link to="/login" className="btn btn-outline-secondary">
-                            Back to Login
+                            {t("backToLogin")}
                         </Link>
                     </div>
                 </>
             ) : (
                 <Form onSubmit={handleSubmit}>
                     <p className="text-body-secondary">
-                        Enter your email and we'll send you a link to choose a
-                        new password.
+                        {t("enterEmailForReset")}
                     </p>
 
-                    {error && <Alert variant="danger">{error}</Alert>}
+                    {error && <AdminErrorAlert message={error} />}
 
                     <Form.Group className="mb-4" controlId="email">
-                        <Form.Label>Email</Form.Label>
+                        <Form.Label>{t("email")}</Form.Label>
                         <Form.Control
                             type="email"
                             placeholder="yourmail@example.com"
@@ -66,10 +74,10 @@ export default function ForgotPassword() {
 
                     <div className="d-grid gap-2">
                         <Button type="submit" variant="primary" disabled={busy}>
-                            {busy ? "Sending…" : "Send reset link"}
+                            {busy ? t("sending") : t("sendResetLink")}
                         </Button>
                         <Link to="/login" className="btn btn-outline-secondary">
-                            Back to Login
+                            {t("backToLogin")}
                         </Link>
                     </div>
                 </Form>
