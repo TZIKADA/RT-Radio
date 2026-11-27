@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths: ["hardware/slaves/**"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -27,13 +28,28 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Which slave folders changed in this push?
-          base="$BEFORE"
-          if [[ "$base" =~ ^0+$ ]]; then
-            base="$(git hash-object -t tree /dev/null)"   # new branch: diff against empty tree
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            # Manual run: release every folder that has never been released
+            # or differs from its latest release tag.
+            folders=""
+            for dir in hardware/slaves/*/; do
+              f="$(basename "$dir")"
+              [[ "$f" =~ ^[A-Za-z0-9_-]+$ ]] || continue
+              last="$(git tag --list "$f-v*" --sort=-v:refname \
+                | grep -E "^$f-v[0-9]+\.[0-9]+\.[0-9]+$" | head -n1 || true)"
+              if [[ -z "$last" ]] || ! git diff --quiet "$last" "$GITHUB_SHA" -- "hardware/slaves/$f"; then
+                folders+="$f "
+              fi
+            done
+          else
+            # Push: release the slave folders changed in this push.
+            base="$BEFORE"
+            if [[ "$base" =~ ^0+$ ]]; then
+              base="$(git hash-object -t tree /dev/null)"   # new branch: diff against empty tree
+            fi
+            folders="$(git diff --name-only "$base" "$GITHUB_SHA" -- hardware/slaves \
+              | awk -F/ 'NF >= 4 {print $3}' | sort -u)"
           fi
-          folders="$(git diff --name-only "$base" "$GITHUB_SHA" -- hardware/slaves \
-            | awk -F/ 'NF >= 4 {print $3}' | sort -u)"
 
           for folder in $folders; do
             [[ "$folder" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "::error::Bad folder name '$folder'"; exit 1; }
