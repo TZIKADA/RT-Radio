@@ -43,7 +43,7 @@ if (!supabaseUrl || !supabasePublishableKey) {
     });
     showStartupError();
 } else {
-    void Promise.all([import("./App"), import("./components/AuthProvider")])
+    void Promise.all([import("./App"), import("./auth/AuthProvider")])
         .then(([{ default: App }, { default: AuthProvider }]) => {
             root.render(
                 <StrictMode>

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import type { Session } from "@supabase/supabase-js";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthContext } from "../../src/scripts/auth-context";
+import { AuthContext } from "../../src/auth/auth-context";
 
 const supabaseMocks = vi.hoisted(() => ({
     signInWithPassword: vi.fn(),
@@ -28,7 +28,7 @@ vi.mock("../../src/lib/supabase", () => ({
     },
 }));
 
-import AuthProvider from "../../src/components/AuthProvider";
+import AuthProvider from "../../src/auth/AuthProvider";
 import ForgotPassword from "../../src/pages/ForgotPassword";
 import Login from "../../src/pages/Login";
 import ResetPassword from "../../src/pages/ResetPassword";

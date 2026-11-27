@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import type { Session } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthContext } from "../../src/scripts/auth-context";
+import { AuthContext } from "../../src/auth/auth-context";
 
 const supabaseMocks = vi.hoisted(() => ({
     from: vi.fn(),
