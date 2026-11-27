@@ -5,7 +5,7 @@ import AuthCard from "../components/AuthCard";
 import { useAuth } from "../scripts/useAuth";
 import { supabase } from "../lib/supabase";
 
-import { MIN_PASSWORD_LENGTH } from "../lib/auth";
+import { MIN_PASSWORD_LENGTH } from "../scripts/auth";
 
 export default function ResetPassword() {
     // Opening the emailed link makes supabase-js create a temporary session,
