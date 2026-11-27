@@ -4,7 +4,7 @@ import type { Session } from "@supabase/supabase-js";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Account from "../../src/pages/Account";
-import { AuthContext } from "../../src/scripts/auth-context";
+import { AuthContext } from "../../src/auth/auth-context";
 
 const supabaseMocks = vi.hoisted(() => ({
     updateUser: vi.fn(),

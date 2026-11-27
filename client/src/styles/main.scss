@@ -40,8 +40,9 @@
 .contact-name {
     display: inline-flex;
     align-items: baseline;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 0.5em;
-    white-space: nowrap;
     unicode-bidi: isolate;
 }
 
@@ -49,6 +50,7 @@
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
     width: 100%;
+    min-width: 0;
     gap: 0.75rem 1rem;
 }
 
@@ -64,6 +66,17 @@
 }
 
 .contact-details a[dir="ltr"] {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 24rem) {
+    .contact-details {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.release-notes {
+    white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
 

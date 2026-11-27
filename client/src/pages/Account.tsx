@@ -1,8 +1,8 @@
 import { useState, type SubmitEvent } from "react";
 import { Alert, Button, Card, Container, Form } from "react-bootstrap";
-import { MIN_PASSWORD_LENGTH } from "../scripts/auth";
+import { MIN_PASSWORD_LENGTH } from "../auth/auth";
 import { supabase } from "../lib/supabase";
-import { useAuth } from "../scripts/useAuth";
+import { useAuth } from "../auth/useAuth";
 import AppControls from "../components/AppControls";
 import AdminErrorAlert from "../components/AdminErrorAlert";
 import { useTranslation } from "../components/LanguageProvider";

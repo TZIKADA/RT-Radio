@@ -1,6 +1,6 @@
 import { Dropdown } from "react-bootstrap";
 import { Link } from "react-router";
-import { useAuth } from "../scripts/useAuth";
+import { useAuth } from "../auth/useAuth";
 import { useTranslation, type Language } from "./LanguageProvider";
 import ThemeToggle from "./ToggleTheme";
 
