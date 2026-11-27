@@ -61,7 +61,7 @@ function parseAsset(value: unknown): GitHubReleaseAsset {
     };
 }
 
-export async function fetchLatestGitHubRelease(
+export async function fetchGitHubRelease(
     githubApi: string,
     signal?: AbortSignal,
 ): Promise<GitHubRelease> {
@@ -72,9 +72,11 @@ export async function fetchLatestGitHubRelease(
     const apiUrl = new URL(githubApi);
     if (
         apiUrl.origin !== "https://api.github.com" ||
-        !/^\/repos\/[^/]+\/[^/]+\/releases\/latest\/?$/.test(apiUrl.pathname)
+        !/^\/repos\/[^/]+\/[^/]+\/releases\/(?:latest|tags\/[A-Za-z0-9_-]+-v\d+\.\d+\.\d+)\/?$/.test(
+            apiUrl.pathname,
+        )
     ) {
-        throw new Error("Header has an invalid GitHub latest-release URL.");
+        throw new Error("Header has an invalid GitHub release API URL.");
     }
 
     const response = await fetch(apiUrl, {
