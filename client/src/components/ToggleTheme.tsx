@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "react-bootstrap";
+import { useTranslation } from "./LanguageProvider";
 
 function getCurrentTheme() {
     const theme = document.documentElement.getAttribute("data-bs-theme");
@@ -13,6 +14,7 @@ function getCurrentTheme() {
 
 export default function ThemeToggle() {
     const [theme, setTheme] = useState(getCurrentTheme);
+    const { t } = useTranslation();
 
     useEffect(() => {
         function syncTheme() {
@@ -34,8 +36,7 @@ export default function ThemeToggle() {
     return (
         <Button
             variant="outline-secondary"
-            size="sm"
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            aria-label={t(theme === "dark" ? "switchToLight" : "switchToDark")}
             onClick={toggle}
         >
             <i className={`bi ${theme === "dark" ? "bi-sun" : "bi-moon"}`}></i>

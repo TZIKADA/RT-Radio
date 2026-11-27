@@ -4,3 +4,7 @@
 
 // The rest of BS
 @import "bootstrap/scss/bootstrap";
+
+[dir="rtl"] .text-end {
+    text-align: end !important;
+}

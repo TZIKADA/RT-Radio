@@ -6,19 +6,22 @@ import ResetPassword from "./pages/ResetPassword";
 import SignUp from "./pages/SignUp";
 import Home from "./pages/Home";
 import Account from "./pages/Account";
+import { LanguageProvider } from "./components/LanguageProvider";
 
 export default function App() {
     return (
-        <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/sign-up" element={<SignUp />} />
+        <LanguageProvider>
+            <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/sign-up" element={<SignUp />} />
 
-            <Route element={<RequireAuth />}>
-                <Route path="/" element={<Home />} />
-                <Route path="/account" element={<Account />} />
-            </Route>
-        </Routes>
+                <Route element={<RequireAuth />}>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/account" element={<Account />} />
+                </Route>
+            </Routes>
+        </LanguageProvider>
     );
 }

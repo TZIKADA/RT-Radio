@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Alert, Button, Card, Container, Row, Col } from "react-bootstrap";
 import { Link } from "react-router";
-import ThemeToggle from "../components/ToggleTheme";
+import AppControls from "../components/AppControls";
+import { useTranslation } from "../components/LanguageProvider";
 import { supabase } from "../lib/supabase";
 
 type HeaderRecord = {
@@ -25,6 +26,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export default function Home() {
+    const { t } = useTranslation();
     const [headers, setHeaders] = useState<HeaderRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -90,7 +92,10 @@ export default function Home() {
             setDownloadError(
                 getErrorMessage(
                     downloadError,
-                    `Failed to prepare the download for ${header.name}.`,
+                    t("failedToPrepareDownload").replace(
+                        "{name}",
+                        header.name,
+                    ),
                 ),
             );
         } finally {
@@ -100,29 +105,29 @@ export default function Home() {
 
     return (
         <Container className="py-5">
-            <header className="d-flex justify-content-between align-items-center mb-5">
+            <header className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-5">
                 <Link to="/" className="text-decoration-none text-body">
                     <span className="h3 mb-0">RT-Radio</span>
                 </Link>
-                <div className="d-flex align-items-center gap-2">
+                <div className="d-flex flex-wrap align-items-center gap-2">
                     <Link to="/account" className="btn btn-outline-secondary">
-                        Account
+                        {t("accountSettings")}
                     </Link>
-                    <ThemeToggle />
+                    <AppControls />
                 </div>
             </header>
 
             <main>
                 <div className="mb-4">
-                    <h1 className="h2 mb-2">Your headers</h1>
+                    <h1 className="h2 mb-2">{t("yourHeaders")}</h1>
                     <p className="text-muted">
-                        Download the header files assigned to your account.
+                        {t("downloadAssignedHeaders")}
                     </p>
                 </div>
 
                 {error && (
                     <Alert variant="danger">
-                        Failed to load headers: {error}
+                        {t("failedToLoadHeaders").replace("{error}", error)}
                     </Alert>
                 )}
                 {downloadError && (
@@ -130,12 +135,12 @@ export default function Home() {
                         {downloadError}
                     </Alert>
                 )}
-                {loading && <p className="text-muted">Loading headers…</p>}
+                {loading && (
+                    <p className="text-muted">{t("loadingHeaders")}</p>
+                )}
                 {!loading && !error && headers.length === 0 && (
                     <p className="text-muted">
-                        No downloadable headers are assigned to your account
-                        yet. Ask an administrator to add them to your
-                        user_headers list.
+                        {t("noHeadersAssigned")}
                     </p>
                 )}
 
@@ -161,8 +166,8 @@ export default function Home() {
                                             disabled={downloadingId !== null}
                                         >
                                             {downloadingId === header.id
-                                                ? "Preparing download…"
-                                                : "Download"}
+                                                ? t("preparingDownload")
+                                                : t("download")}
                                         </Button>
                                     </Card.Body>
                                 </Card>
