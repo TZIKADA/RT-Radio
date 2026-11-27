@@ -41,12 +41,19 @@ jobs:
 
           # Prints the response body on success; on failure prints the status
           # code and body so the real error is visible in the Actions log.
-          supa() {  # usage: supa METHOD URL [curl args...]
+          supa() { # usage: supa METHOD URL [curl args...]
             local method="$1" url="$2"; shift 2
-            local out status
+            local out status profile_header=()
+            if [[ "$method" == "GET" ]]; then
+              profile_header=(-H "Accept-Profile: api")
+            else
+              profile_header=(-H "Content-Profile: api")
+            fi
             out="$(mktemp)"
             status="$(curl --silent --show-error --request "$method" "$url" \
-              -H "apikey: $SUPABASE_SECRET_KEY" "$@" \
+              -H "apikey: $SUPABASE_SECRET_KEY" \
+              "${profile_header[@]}" \
+              "$@" \
               -o "$out" -w '%{http_code}')"
             if [ "$status" -ge 400 ]; then
               echo "::error::Supabase $method $url returned HTTP $status: $(cat "$out")" >&2
