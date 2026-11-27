@@ -3,9 +3,12 @@ name: Slave Header Release
 on:
   push:
     branches: [main]
-    paths:
-      - "hardware/slaves/**"
+    paths: ["hardware/slaves/**"]
   workflow_dispatch:
+    inputs:
+      folder:
+        description: "Slave folder to release (e.g. default)"
+        required: true
 
 permissions:
   contents: write
@@ -16,339 +19,72 @@ concurrency:
 
 jobs:
   release:
-    name: Publish slave-folder updates
     runs-on: ubuntu-latest
     steps:
-      - name: Validate Supabase credentials
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-        run: |
-          set -euo pipefail
-          if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_SECRET_KEY" ]]; then
-            echo "::error::Configure SUPABASE_URL and SUPABASE_SECRET_KEY as repository Actions secrets."
-            exit 1
-          fi
-          if [[ "$SUPABASE_SECRET_KEY" != sb_secret_* ]]; then
-            echo "::error::SUPABASE_SECRET_KEY must be a Supabase secret API key, not a legacy JWT."
-            exit 1
-          fi
-
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Create releases for changed slave folders
+      - name: Create a release for each changed slave folder
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          BEFORE_SHA: ${{ github.event.before }}
-          AFTER_SHA: ${{ github.sha }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          BEFORE: ${{ github.event.before }}
+          FOLDER_INPUT: ${{ inputs.folder }}
         run: |
           set -euo pipefail
 
-          # Supabase helper: prints the response body on success; on failure
-          # prints HTTP status + body so the real error is visible in the log.
-          # The `headers` table lives in the `api` schema, so every call must
-          # send the matching Profile header or PostgREST will return 404.
-          # Keep this in lockstep with slaves-supabase-sync.yml.
-          supa() { # usage: supa METHOD URL [curl args...]
-            local method="$1" url="$2"; shift 2
-            local out status profile_header=()
-            if [[ "$method" == "GET" ]]; then
-              profile_header=(-H "Accept-Profile: api")
-            else
-              profile_header=(-H "Content-Profile: api")
-            fi
-            out="$(mktemp)"
-            status="$(curl --silent --show-error --request "$method" "$url" \
-              -H "apikey: $SUPABASE_SECRET_KEY" \
-              "${profile_header[@]}" \
-              "$@" \
-              -o "$out" -w '%{http_code}')"
-            if [ "$status" -ge 400 ]; then
-              echo "::error::Supabase $method $url returned HTTP $status: $(cat "$out")" >&2
-              rm -f "$out"
-              exit 1
-            fi
-            cat "$out"
-            rm -f "$out"
-          }
-
-          CURSOR_REF="refs/tags/slave-header-release-cursor"
-          if git show-ref --verify --quiet "$CURSOR_REF"; then
-            START_SHA="$(git rev-parse "$CURSOR_REF^{commit}")"
-            if ! git merge-base --is-ancestor "$START_SHA" "$AFTER_SHA"; then
-              echo "::error::Release cursor is not an ancestor of $AFTER_SHA"
-              exit 1
-            fi
+          # Which folders changed in this push (or the one chosen manually)?
+          if [[ -n "$FOLDER_INPUT" ]]; then
+            folders="$FOLDER_INPUT"
           else
-            START_SHA="$BEFORE_SHA"
+            base="$BEFORE"
+            if [[ "$base" =~ ^0+$ ]]; then
+              base="$(git hash-object -t tree /dev/null)"   # new branch: diff against empty tree
+            fi
+            folders="$(git diff --name-only "$base" "$GITHUB_SHA" -- hardware/slaves \
+              | awk -F/ 'NF >= 4 {print $3}' | sort -u)"
           fi
 
-          # Empty BEFORE_SHA (some push edge cases) would make
-          # "$START_SHA..$AFTER_SHA" expand to "..AFTER_SHA", which git reads
-          # as "HEAD..AFTER_SHA" — always empty after checkout. Treat empty
-          # and all-zeros the same way: walk the full history.
-          if [[ -z "$START_SHA" ]] || [[ "$START_SHA" =~ ^0+$ ]]; then
-            COMMIT_LIST="$(git rev-list --first-parent --reverse "$AFTER_SHA")"
-          else
-            COMMIT_LIST="$(git rev-list --first-parent --reverse "$START_SHA..$AFTER_SHA")"
-          fi
+          for folder in $folders; do
+            [[ "$folder" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "::error::Bad folder name '$folder'"; exit 1; }
+            [[ -d "hardware/slaves/$folder" ]] || { echo "$folder was deleted; nothing to release."; continue; }
 
-          COMMITS=()
-          if [[ -n "$COMMIT_LIST" ]]; then
-            mapfile -t COMMITS <<< "$COMMIT_LIST"
-          fi
+            # Already released at this commit? (makes re-runs safe)
+            if [[ -n "$(git tag --points-at "$GITHUB_SHA" --list "$folder-v*")" ]]; then
+              echo "$folder already released at $GITHUB_SHA; skipping."
+              continue
+            fi
 
-          echo "Cursor: ${START_SHA:-<none>}"
-          echo "After:  $AFTER_SHA"
-          echo "Commits to process: ${#COMMITS[@]}"
-          if [[ ${#COMMITS[@]} -eq 0 ]]; then
-            echo "::warning::No commits between ${START_SHA:-<none>} and $AFTER_SHA. The cursor will advance to $AFTER_SHA but no release will be created."
-          fi
-
-          declare -A latest_versions=()
-
-          for commit in "${COMMITS[@]}"; do
-            WORK_DIR="$(mktemp -d "$RUNNER_TEMP/slave-release.XXXXXX")"
-            DIFF_FILE="$WORK_DIR/changed-paths"
-
-            if git rev-parse "$commit^1" >/dev/null 2>&1; then
-              git diff --name-only --no-renames -z "$commit^1" "$commit" > "$DIFF_FILE"
+            # Next version = latest folder-vX.Y.Z tag with patch + 1
+            latest="$(git tag --list "$folder-v*" --sort=-v:refname \
+              | grep -E "^$folder-v[0-9]+\.[0-9]+\.[0-9]+$" | head -n1 || true)"
+            if [[ -z "$latest" ]]; then
+              new="0.0.1"
             else
-              git diff-tree --root --no-commit-id --name-only -r -z "$commit" > "$DIFF_FILE"
+              IFS=. read -r major minor patch <<< "${latest#"$folder-v"}"
+              new="$major.$minor.$((patch + 1))"
+            fi
+            tag="$folder-v$new"
+
+            # Assets: every .h file, flattened (sub/dir/a.h -> sub__dir__a.h)
+            assets_dir="$(mktemp -d)"
+            assets=()
+            while IFS= read -r -d '' file; do
+              name="${file#hardware/slaves/$folder/}"
+              name="${name//\//__}"
+              cp "$file" "$assets_dir/$name"
+              assets+=("$assets_dir/$name")
+            done < <(find "hardware/slaves/$folder" -name '*.h' -print0)
+
+            # Release notes = the folder's README
+            readme="hardware/slaves/$folder/README.md"
+            if [[ -f "$readme" ]]; then
+              notes=(--notes-file "$readme")
+            else
+              notes=(--notes "No README.md was present in this folder at release time.")
             fi
 
-            declare -A folder_files=()
-            while IFS= read -r -d '' path; do
-              [[ "$path" =~ ^hardware/slaves/([^/]+)/.+$ ]] || continue
-              folder="${BASH_REMATCH[1]}"
-              if [[ ! "$folder" =~ ^[A-Za-z0-9_-]+$ ]]; then
-                echo "::error::Unsupported slave folder name '$folder'"
-                exit 1
-              fi
-              if [[ -z "${folder_files[$folder]+present}" ]]; then
-                folder_files["$folder"]="$WORK_DIR/$folder.files"
-                : > "${folder_files[$folder]}"
-              fi
-              printf '%s\0' "$path" >> "${folder_files[$folder]}"
-            done < "$DIFF_FILE"
-
-            for folder in "${!folder_files[@]}"; do
-              mapfile -t tags < <(git tag --list "${folder}-v*" --sort=-v:refname)
-
-              if [[ -z "${latest_versions[$folder]+present}" ]]; then
-                latest=""
-                for existing_tag in "${tags[@]}"; do
-                  version="${existing_tag#"$folder-v"}"
-                  if [[ "$existing_tag" == "$folder-v"* && "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                    latest="$version"
-                    break
-                  fi
-                done
-                latest_versions["$folder"]="$latest"
-              fi
-
-              already_released=false
-              for existing_tag in "${tags[@]}"; do
-                version="${existing_tag#"$folder-v"}"
-                if [[ "$existing_tag" == "$folder-v"* && "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                  if existing_commit="$(git rev-parse --verify "$existing_tag^{commit}" 2>/dev/null)" &&
-                    [[ "$existing_commit" == "$commit" ]]; then
-                    echo "Release already exists for $folder at $commit; skipping."
-                    already_released=true
-                    break
-                  fi
-                fi
-              done
-              if [[ "$already_released" == true ]]; then
-                continue
-              fi
-
-              latest="${latest_versions[$folder]}"
-              if [[ -z "$latest" ]]; then
-                new="0.0.1"
-              else
-                IFS=. read -r major minor patch <<< "$latest"
-                new="$major.$minor.$((patch + 1))"
-              fi
-              tag="${folder}-v${new}"
-
-              ASSET_DIR="$WORK_DIR/assets-$folder"
-              mkdir -p "$ASSET_DIR"
-              HEADERS_FILE="$WORK_DIR/headers-$folder"
-              git ls-tree -r --name-only -z "$commit" -- "hardware/slaves/$folder" > "$HEADERS_FILE"
-              paths=()
-              while IFS= read -r -d '' path; do
-                [[ "$path" == *.h ]] || continue
-                paths+=("$path")
-              done < "$HEADERS_FILE"
-
-              assets=()
-              for path in "${paths[@]}"; do
-                relative="${path#hardware/slaves/$folder/}"
-                asset_name="${relative//\//__}"
-                candidate="$asset_name"
-                suffix=1
-                while [[ -e "$ASSET_DIR/$asset_name" ]]; do
-                  asset_name="${candidate}-$suffix"
-                  suffix=$((suffix + 1))
-                done
-                git show "$commit:$path" > "$ASSET_DIR/$asset_name"
-                assets+=("$ASSET_DIR/$asset_name")
-              done
-
-              README_PATH="hardware/slaves/$folder/README.md"
-              if git cat-file -e "$commit:$README_PATH" 2>/dev/null; then
-                git show "$commit:$README_PATH" > "$WORK_DIR/README.md"
-              else
-                printf 'No README.md was present in this folder at release time.\n' > "$WORK_DIR/README.md"
-              fi
-
-              # Release body is the README only; the client reads release.notes
-              # as the human-readable description. Use --notes-file (not
-              # --readme-file, which is not a valid gh flag).
-              gh release create "$tag" "${assets[@]}" \
-                --target "$commit" \
-                --title "$folder" \
-                --notes-file "$WORK_DIR/README.md"
-
-              latest_versions["$folder"]="$new"
-              echo "Released $tag for $folder at $commit."
-            done
-
-            rm -rf -- "$WORK_DIR"
+            gh release create "$tag" "${assets[@]}" \
+              --target "$GITHUB_SHA" --title "$folder" "${notes[@]}"
+            echo "Released $tag."
           done
-
-          # Keep one database row for the latest existing release in each folder.
-          RELEASE_APIS="$(
-            gh api --paginate "repos/$GH_REPO/releases?per_page=100" \
-              | jq -s --arg repo "$GH_REPO" '
-                  [
-                    .[][]?
-                    | select(.draft == false and (.published_at | type == "string"))
-                    | .tag_name as $tag
-                    | select($tag | test("^[A-Za-z0-9_-]+-v[0-9]+\\.[0-9]+\\.[0-9]+$"))
-                    | {
-                        folder: ($tag | capture("^(?<folder>[A-Za-z0-9_-]+)-v[0-9]+\\.[0-9]+\\.[0-9]+$").folder),
-                        published_at: .published_at,
-                        github_api: "https://api.github.com/repos/\($repo)/releases/tags/\($tag)"
-                      }
-                  ]
-                  | sort_by(.published_at)
-                  | group_by(.folder)
-                  | map(last)
-                '
-          )"
-
-          API_PREFIX="https://api.github.com/repos/$GH_REPO/releases/tags/"
-          REST_HEADERS_URL="${SUPABASE_URL%/}/rest/v1/headers"
-          EXISTING_ROWS='[]'
-          OFFSET=0
-          PAGE_SIZE=1000
-
-          while true; do
-            PAGE="$(supa GET "$REST_HEADERS_URL" --get \
-              --data-urlencode "select=id,github_api" \
-              --data-urlencode "github_api=like.${API_PREFIX}*" \
-              --data-urlencode "order=id.asc" \
-              --data-urlencode "limit=$PAGE_SIZE" \
-              --data-urlencode "offset=$OFFSET")"
-            PAGE_COUNT="$(jq 'length' <<< "$PAGE")"
-            EXISTING_ROWS="$(jq -cn \
-              --argjson existing "$EXISTING_ROWS" \
-              --argjson page "$PAGE" \
-              '$existing + $page')"
-            if (( PAGE_COUNT < PAGE_SIZE )); then
-              break
-            fi
-            OFFSET=$((OFFSET + PAGE_SIZE))
-          done
-
-          if ! jq -e 'all(.[]; (.id | type == "string" or type == "number") and (.github_api | type == "string"))' \
-               <<< "$EXISTING_ROWS" >/dev/null; then
-            echo "::error::Unexpected row shape in headers table (id or github_api has the wrong type)."
-            exit 1
-          fi
-
-          SYNC_PLAN="$(jq -cn \
-            --argjson rows "$EXISTING_ROWS" \
-            --argjson desired "$RELEASE_APIS" '
-              def folder:
-                try (
-                  .github_api
-                  | capture("/releases/tags/(?<folder>[A-Za-z0-9_-]+)-v[0-9]+\\.[0-9]+\\.[0-9]+$").folder
-                ) catch null;
-
-              [
-                $desired[] as $target
-                | ([$rows[] | select(folder == $target.folder)] | sort_by(.id)) as $matches
-                | if ($matches | length) == 0 then
-                    {action: "insert", github_api: $target.github_api}
-                  else
-                    (
-                      {
-                        action: (if $matches[0].github_api == $target.github_api then "keep" else "update" end),
-                        id: $matches[0].id,
-                        github_api: $target.github_api
-                      },
-                      ($matches[1:][] | {action: "delete", id: .id})
-                    )
-                  end
-              ]
-              +
-              [
-                $rows[] as $row
-                | ($row | folder) as $row_folder
-                | select($row_folder != null)
-                | select(([$desired[].folder] | index($row_folder)) == null)
-                | {action: "delete", id: $row.id}
-              ]
-            ')"
-
-          NEW_ROWS="$(jq -c '[.[] | select(.action == "insert") | {github_api}]' <<< "$SYNC_PLAN")"
-          if [[ "$(jq 'length' <<< "$NEW_ROWS")" -gt 0 ]]; then
-            supa POST "$REST_HEADERS_URL" \
-              -H "Content-Type: application/json" \
-              -H "Prefer: return=minimal" \
-              --data "$NEW_ROWS" >/dev/null
-          fi
-
-          mapfile -t UPDATES < <(jq -r \
-            '.[] | select(.action == "update") | [.id, .github_api] | @tsv' \
-            <<< "$SYNC_PLAN")
-          for update in "${UPDATES[@]}"; do
-            IFS=$'\t' read -r id github_api <<< "$update"
-            if [[ ! "$id" =~ ^[A-Za-z0-9_-]+$ ]]; then
-              echo "::error::Unexpected id format in headers table."
-              exit 1
-            fi
-            payload="$(jq -cn --arg github_api "$github_api" '{github_api: $github_api}')"
-            supa PATCH "$REST_HEADERS_URL?id=eq.$id" \
-              -H "Content-Type: application/json" \
-              -H "Prefer: return=minimal" \
-              --data "$payload" >/dev/null
-          done
-
-          mapfile -t STALE_IDS < <(jq -r \
-            '.[] | select(.action == "delete") | .id' <<< "$SYNC_PLAN")
-          for ((i = 0; i < ${#STALE_IDS[@]}; i += 100)); do
-            batch=("${STALE_IDS[@]:i:100}")
-            for id in "${batch[@]}"; do
-              if [[ ! "$id" =~ ^[A-Za-z0-9_-]+$ ]]; then
-                echo "::error::Unexpected id format in headers table."
-                exit 1
-              fi
-            done
-            id_csv="$(IFS=,; printf '%s' "${batch[*]}")"
-            supa DELETE "$REST_HEADERS_URL?id=in.($id_csv)" \
-              -H "Prefer: return=minimal" >/dev/null
-          done
-
-          echo "Supabase headers synced: $(jq 'length' <<< "$RELEASE_APIS") folders, ${#STALE_IDS[@]} stale rows removed."
-
-          git push --force origin "$AFTER_SHA:$CURSOR_REF"
