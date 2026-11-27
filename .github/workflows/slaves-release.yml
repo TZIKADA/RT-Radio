@@ -164,22 +164,15 @@ jobs:
 
               README_PATH="hardware/slaves/$folder/README.md"
               if git cat-file -e "$commit:$README_PATH" 2>/dev/null; then
-                git show "$commit:$README_PATH" > "$WORK_DIR/notes.md"
+                git show "$commit:$README_PATH" > "$WORK_DIR/README.md"
               else
-                printf 'No README.md was present in this folder at release time.\n' > "$WORK_DIR/notes.md"
+                printf 'No README.md was present in this folder at release time.\n' > "$WORK_DIR/README.md"
               fi
-              {
-                printf '\n\n---\n\n'
-                echo "Commit: $commit"
-                echo
-                echo "Included headers:"
-                for path in "${paths[@]}"; do echo "- \`$path\`"; done
-              } >> "$WORK_DIR/notes.md"
 
               gh release create "$tag" "${assets[@]}" \
                 --target "$commit" \
                 --title "$folder" \
-                --notes-file "$WORK_DIR/notes.md"
+                --readme-file "$WORK_DIR/README.md"
 
               latest_versions["$folder"]="$new"
               echo "Released $tag for $folder at $commit."
