@@ -88,14 +88,20 @@ describe("App routes", () => {
     });
 
     it("renders the protected home route when signed in", async () => {
+        const user = userEvent.setup();
         renderAt("/", { user: { email: "user@example.com" } } as Session);
 
         expect(
             await screen.findByRole("heading", { name: "Your headers" }),
         ).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Menu" }));
+        expect(
+            screen.getByRole("link", { name: "Account settings" }),
+        ).toHaveAttribute("href", "/account");
     });
 
-    it("renders the protected account route when signed in", () => {
+    it("renders the protected account route when signed in", async () => {
+        const user = userEvent.setup();
         renderAt(
             "/account",
             { user: { email: "user@example.com" } } as Session,
@@ -104,6 +110,10 @@ describe("App routes", () => {
         expect(
             screen.getByRole("heading", { name: "Account settings" }),
         ).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Menu" }));
+        expect(
+            screen.getByRole("link", { name: "Back to downloads" }),
+        ).toHaveAttribute("href", "/");
     });
 
     it("shows a contact-admin message when session loading fails", () => {
@@ -130,9 +140,10 @@ describe("App routes", () => {
         expect(
             screen.getByRole("heading", { name: "Contact" }),
         ).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Guide" })).toHaveAttribute(
+        await user.click(screen.getByRole("button", { name: "Menu" }));
+        expect(screen.getByRole("link", { name: "Guide" })).toHaveAttribute(
             "href",
-            "/docs/index.html",
+            "/guide/index.html",
         );
         expect(
             screen.getByRole("link", { name: "0534201812" }),
@@ -145,13 +156,17 @@ describe("App routes", () => {
 
         expect(screen.getByText("Dan Krumkop")).toBeInTheDocument();
         expect(screen.getByText("(דן קרומקופ)")).toBeInTheDocument();
+        expect(
+            screen.getByRole("button", { name: "Switch to dark mode" }),
+        ).toBeInTheDocument();
 
         await user.click(screen.getByRole("button", { name: "Language" }));
         await user.click(screen.getByRole("button", { name: "עברית" }));
 
+        await user.click(screen.getByRole("button", { name: "תפריט" }));
         expect(
-            screen.getByRole("button", { name: "מדריך" }),
-        ).toBeInTheDocument();
+            screen.getByRole("link", { name: "מדריך" }),
+        ).toHaveAttribute("href", "/guide/index.html");
         expect(screen.getByText("דן קרומקופ")).toBeInTheDocument();
         expect(screen.queryByText("(דן קרומקופ)")).not.toBeInTheDocument();
         expect(screen.queryByText("Dan Krumkop")).not.toBeInTheDocument();
@@ -180,7 +195,7 @@ describe("App routes", () => {
         renderAt("/contact");
 
         await user.click(
-            screen.getByRole("button", { name: "Return to RT-Radio" }),
+            screen.getByRole("button", { name: "Return" }),
         );
 
         expect(

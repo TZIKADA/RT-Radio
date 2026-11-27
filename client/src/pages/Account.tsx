@@ -88,12 +88,7 @@ export default function Account() {
                 <Link to="/" className="text-decoration-none text-dark">
                     <span className="h3 mb-0">RT-Radio</span>
                 </Link>
-                <div className="d-flex flex-wrap align-items-center gap-2">
-                    <Link to="/" className="btn btn-outline-secondary">
-                        {t("backToDownloads")}
-                    </Link>
-                    <AppControls />
-                </div>
+                <AppControls showDownloads />
             </header>
 
             <main>

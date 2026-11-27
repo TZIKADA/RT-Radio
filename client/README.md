@@ -7,8 +7,8 @@ The client-side of the server where users can get their personalized header for 
 1. Copy `.env.example` to `.env.local`.
 2. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to the values from
    your Supabase project.
-   `VITE_DOCUMENTATION_URL` can point to your instructions page; it defaults
-   to the local `/docs/index.html` placeholder.
+   `VITE_GUIDE_URL` can point to your guide page; it defaults
+   to the local `/guide/index.html` placeholder.
    The contact details and localized public contact page are in
    `public/contact.html`.
 3. Run `npm install`.

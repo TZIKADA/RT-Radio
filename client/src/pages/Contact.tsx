@@ -66,7 +66,7 @@ export default function Contact() {
                     onClick={returnToApp}
                 >
                     <i className="bi bi-arrow-left" aria-hidden="true" />
-                    {t("returnToApp")}
+                    {t("returnLabel")}
                 </Button>
             </div>
         </AuthCard>
