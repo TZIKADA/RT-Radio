@@ -1,10 +1,14 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router";
 
 const supabaseMocks = vi.hoisted(() => ({
     from: vi.fn(),
-    select: vi.fn(),
+    assignmentsSelect: vi.fn(),
+    headersSelect: vi.fn(),
+    headersIn: vi.fn(),
+    githubFetch: vi.fn(),
 }));
 
 vi.mock("../../src/lib/supabase", () => ({
@@ -13,64 +17,243 @@ vi.mock("../../src/lib/supabase", () => ({
 
 import Home from "../../src/pages/Home";
 
+const API_URL = "https://api.github.com/repos/example/main-header/releases/latest";
+
+function releaseResponse(overrides: Record<string, unknown> = {}) {
+    return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+            name: "Main Header Release",
+            tag_name: "v1.2.0",
+            body: "Fixes\n- updates the main header",
+            published_at: "2025-03-01T10:00:00Z",
+            zipball_url:
+                "https://api.github.com/repos/example/main-header/zipball/v1.2.0",
+            assets: [
+                {
+                    name: "main-header.bin",
+                    size: 2048,
+                    content_type: "application/octet-stream",
+                    browser_download_url:
+                        "https://github.com/example/main-header/releases/download/v1.2.0/main-header.bin",
+                },
+            ],
+            ...overrides,
+        }),
+    };
+}
+
 describe("Home", () => {
     beforeEach(() => {
-        supabaseMocks.from.mockReturnValue({ select: supabaseMocks.select });
-        supabaseMocks.select.mockResolvedValue({ data: [], error: null });
+        vi.clearAllMocks();
+        vi.stubGlobal("fetch", supabaseMocks.githubFetch);
+
+        const headersQuery = {
+            select: supabaseMocks.headersSelect,
+            in: supabaseMocks.headersIn,
+        };
+        supabaseMocks.from.mockImplementation((table: string) =>
+            table === "user_headers"
+                ? { select: supabaseMocks.assignmentsSelect }
+                : headersQuery,
+        );
+        supabaseMocks.assignmentsSelect.mockResolvedValue({
+            data: [{ header_id: "header-1" }],
+            error: null,
+        });
+        supabaseMocks.headersSelect.mockReturnValue(headersQuery);
+        supabaseMocks.headersIn.mockResolvedValue({
+            data: [{ id: "header-1", github_api: API_URL }],
+            error: null,
+        });
+        supabaseMocks.githubFetch.mockResolvedValue(releaseResponse());
     });
 
-    it("loads and displays todos, and shows the documentation dialog", async () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+    });
+
+    function renderHome() {
+        return render(
+            <MemoryRouter>
+                <Home />
+            </MemoryRouter>,
+        );
+    }
+
+    it("loads assigned releases and shows release information and downloads", async () => {
         const user = userEvent.setup();
-        supabaseMocks.select.mockResolvedValue({
+        supabaseMocks.assignmentsSelect.mockResolvedValue({
+            data: [{ header_id: "header-1" }, { header_id: "header-2" }],
+            error: null,
+        });
+        supabaseMocks.headersIn.mockResolvedValue({
             data: [
-                { id: 1, name: "Tune the radio" },
-                { id: 2, name: "Install the header" },
+                { id: "header-1", github_api: API_URL },
+                {
+                    id: "header-2",
+                    github_api:
+                        "https://api.github.com/repos/example/alternate/releases/latest",
+                },
             ],
             error: null,
         });
-        render(<Home />);
+        supabaseMocks.githubFetch
+            .mockResolvedValueOnce(releaseResponse())
+            .mockResolvedValueOnce(
+                releaseResponse({
+                    name: "Alternate Header Release",
+                    tag_name: "v2.0.0",
+                    zipball_url:
+                        "https://api.github.com/repos/example/alternate/zipball/v2.0.0",
+                    assets: [],
+                }),
+            );
+        renderHome();
 
-        expect(screen.getByText("Loading…")).toBeInTheDocument();
-        expect(await screen.findByText("Tune the radio")).toBeInTheDocument();
-        expect(screen.getByText("Install the header")).toBeInTheDocument();
-        expect(supabaseMocks.from).toHaveBeenCalledWith("todos");
-        expect(supabaseMocks.select).toHaveBeenCalledOnce();
-
-        await user.click(screen.getByRole("button", { name: "Documentation" }));
         expect(
-            screen.getByRole("heading", { name: "Documentation" }),
+            await screen.findByRole("heading", {
+                name: "Main Header Release",
+            }),
         ).toBeInTheDocument();
+        expect(
+            screen.getByRole("heading", { name: "Alternate Header Release" }),
+        ).toBeInTheDocument();
+        expect(supabaseMocks.from).toHaveBeenNthCalledWith(1, "user_headers");
+        expect(supabaseMocks.assignmentsSelect).toHaveBeenCalledWith(
+            "header_id",
+        );
+        expect(supabaseMocks.from).toHaveBeenNthCalledWith(2, "headers");
+        expect(supabaseMocks.headersSelect).toHaveBeenCalledWith(
+            "id,github_api",
+        );
+        expect(supabaseMocks.headersIn).toHaveBeenCalledWith("id", [
+            "header-1",
+            "header-2",
+        ]);
+        expect(supabaseMocks.githubFetch).toHaveBeenCalledWith(
+            new URL(API_URL),
+            expect.objectContaining({
+                headers: { Accept: "application/vnd.github+json" },
+            }),
+        );
+
+        const downloadButtons = screen.getAllByRole("button", {
+            name: "Download",
+        });
+        expect(downloadButtons).toHaveLength(2);
+        expect(downloadButtons[0]).toHaveAttribute(
+            "href",
+            "https://api.github.com/repos/example/alternate/zipball/v2.0.0",
+        );
+        expect(downloadButtons[1]).toHaveAttribute(
+            "href",
+            "https://api.github.com/repos/example/main-header/zipball/v1.2.0",
+        );
+
         await user.click(
-            within(screen.getByRole("dialog"))
-                .getAllByRole("button", { name: "Close" })
-                .at(-1)!,
+            screen.getByRole("button", {
+                name: "Release details: Main Header Release",
+            }),
         );
-        await waitFor(() =>
-            expect(
-                screen.queryByRole("heading", { name: "Documentation" }),
-            ).not.toBeInTheDocument(),
+        const dialog = screen.getByRole("dialog");
+        expect(within(dialog).getByText(/Fixes[\s\S]+updates the main header/))
+            .toBeInTheDocument();
+        expect(within(dialog).getByText("v1.2.0")).toBeInTheDocument();
+        expect(within(dialog).getByText("main-header.bin")).toBeInTheDocument();
+        expect(dialog.querySelector("time")).toHaveAttribute(
+            "datetime",
+            "2025-03-01T10:00:00Z",
+        );
+        expect(
+            within(dialog).getByRole("link", { name: "Download file" }),
+        ).toHaveAttribute(
+            "href",
+            "https://github.com/example/main-header/releases/download/v1.2.0/main-header.bin",
         );
     });
 
-    it("shows an empty state when there are no todos", async () => {
-        render(<Home />);
+    it("does not fetch release rows when the user has no assignments", async () => {
+        supabaseMocks.assignmentsSelect.mockResolvedValue({
+            data: [],
+            error: null,
+        });
+        renderHome();
 
-        expect(await screen.findByText("No todos yet.")).toBeInTheDocument();
+        expect(
+            await screen.findByText(
+                "No downloadable headers are assigned to your account yet. Ask an administrator to add them to your user_headers list.",
+            ),
+        ).toBeInTheDocument();
+        expect(supabaseMocks.from).toHaveBeenCalledOnce();
+        expect(supabaseMocks.headersIn).not.toHaveBeenCalled();
+        expect(supabaseMocks.githubFetch).not.toHaveBeenCalled();
     });
 
-    it("shows a clear error state when loading todos fails", async () => {
+    it("reuses release metadata when assigned headers share an API URL", async () => {
+        supabaseMocks.assignmentsSelect.mockResolvedValue({
+            data: [{ header_id: "header-1" }, { header_id: "header-2" }],
+            error: null,
+        });
+        supabaseMocks.headersIn.mockResolvedValue({
+            data: [
+                { id: "header-1", github_api: API_URL },
+                { id: "header-2", github_api: API_URL },
+            ],
+            error: null,
+        });
+        renderHome();
+
+        expect(
+            await screen.findAllByRole("heading", {
+                name: "Main Header Release",
+            }),
+        ).toHaveLength(2);
+        expect(supabaseMocks.githubFetch).toHaveBeenCalledOnce();
+    });
+
+    it("shows a clear error state when assignments cannot be loaded", async () => {
         const consoleError = vi
             .spyOn(console, "error")
             .mockImplementation(() => {});
-        supabaseMocks.select.mockResolvedValue({
+        const assignmentError = {
+            code: "PGRST116",
+            message: "Database unavailable",
+        };
+        supabaseMocks.assignmentsSelect.mockResolvedValue({
             data: null,
-            error: { message: "Database unavailable" },
+            error: assignmentError,
         });
-        render(<Home />);
+        renderHome();
 
-        expect(
-            await screen.findByText("Failed to load todos: Database unavailable"),
-        ).toBeInTheDocument();
-        expect(consoleError).toHaveBeenCalledOnce();
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't load your files. If the issue persists, contact the site administrator.",
+        );
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Loading assigned header releases failed",
+            assignmentError,
+        );
+        expect(supabaseMocks.githubFetch).not.toHaveBeenCalled();
+    });
+
+    it("shows an error when GitHub cannot return a release", async () => {
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        supabaseMocks.githubFetch.mockResolvedValue({
+            ok: false,
+            status: 403,
+        });
+        renderHome();
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't load your files. If the issue persists, contact the site administrator.",
+        );
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Loading assigned header releases failed",
+            new Error("GitHub API request failed with status 403."),
+        );
     });
 });
