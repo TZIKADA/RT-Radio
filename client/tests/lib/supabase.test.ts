@@ -26,7 +26,7 @@ describe("Supabase client configuration", () => {
     ])("requires %s to be configured", async (variable, value) => {
         vi.stubEnv(variable, value);
 
-        await expect(import("./supabase")).rejects.toThrow(
+        await expect(import("../../src/lib/supabase")).rejects.toThrow(
             `Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.`,
         );
         expect(supabaseMocks.createClient).not.toHaveBeenCalled();
@@ -36,7 +36,7 @@ describe("Supabase client configuration", () => {
         vi.stubEnv("VITE_SUPABASE_URL", " https://example.supabase.co ");
         vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", " publishable-key ");
 
-        await import("./supabase");
+        await import("../../src/lib/supabase");
 
         expect(supabaseMocks.createClient).toHaveBeenCalledWith(
             "https://example.supabase.co",

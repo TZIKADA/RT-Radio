@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="color-scheme" content="light dark" />
+        <title>RT-Radio | Contact</title>
+        <script>
+            const savedTheme = localStorage.getItem("rt-radio-theme");
+            const theme =
+                savedTheme === "light" || savedTheme === "dark"
+                    ? savedTheme
+                    : window.matchMedia("(prefers-color-scheme: dark)").matches
+                      ? "dark"
+                      : "light";
+            document.documentElement.setAttribute("data-bs-theme", theme);
+        </script>
+        <style>
+            :root {
+                color-scheme: light;
+                --contact-background: #fce8c3;
+                --contact-foreground: #121110;
+                --contact-border: #917e6b;
+                --contact-link: #1e5181;
+                font: 16px/1.5 system-ui, sans-serif;
+                color: var(--contact-foreground);
+                background: var(--contact-background);
+            }
+
+            :root[data-bs-theme="dark"] {
+                color-scheme: dark;
+                --contact-background: #121110;
+                --contact-foreground: #fce8c3;
+                --contact-border: #504d47;
+                --contact-link: #1e5181;
+            }
+
+            body {
+                display: grid;
+                min-height: 100vh;
+                margin: 0;
+                place-items: center;
+            }
+
+            main {
+                box-sizing: border-box;
+                width: fit-content;
+                max-width: calc(100% - 2rem);
+                padding: 2rem;
+                border: 1px solid var(--contact-border);
+                border-radius: 0.75rem;
+                background: var(--contact-background);
+                box-shadow: 0 0.75rem 2rem #17203312;
+            }
+
+            h1 {
+                margin-top: 0;
+            }
+
+            dl {
+                display: grid;
+                grid-template-columns: max-content minmax(0, 1fr);
+                width: max-content;
+                max-width: 100%;
+                gap: 1rem;
+                margin-bottom: 0;
+            }
+
+            dt {
+                font-weight: 600;
+                text-align: start;
+            }
+
+            dd {
+                min-width: 0;
+                margin: 0;
+                text-align: end;
+            }
+
+            .contact-name {
+                display: inline-flex;
+                align-items: baseline;
+                gap: 0.5em;
+                white-space: nowrap;
+                unicode-bidi: isolate;
+            }
+
+            [hidden] {
+                display: none !important;
+            }
+
+            a {
+                color: var(--contact-link);
+            }
+
+            .contact-controls {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.75rem;
+                margin-bottom: 1.25rem;
+            }
+
+            .return-link {
+                display: inline-flex;
+                align-items: center;
+                padding: 0.5rem 0.85rem;
+                border: 1px solid var(--contact-border);
+                border-radius: 0.375rem;
+                text-decoration: none;
+            }
+
+            .language-select {
+                max-width: 100%;
+                padding: 0.5rem 0.75rem;
+                border: 1px solid var(--contact-border);
+                border-radius: 0.375rem;
+                color: var(--contact-foreground);
+                background: var(--contact-background);
+                font: inherit;
+            }
+
+            .visually-hidden {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+                clip: rect(0, 0, 0, 0);
+                white-space: nowrap;
+            }
+
+        </style>
+    </head>
+    <body>
+        <main>
+            <div class="contact-controls">
+                <a id="return-link" class="return-link" href="/">
+                    Return to RT-Radio
+                </a>
+                <label id="language-label" class="visually-hidden" for="language-select">
+                    Language
+                </label>
+                <select
+                    id="language-select"
+                    class="language-select"
+                    aria-labelledby="language-label"
+                >
+                    <option value="en">English</option>
+                    <option value="he">עברית</option>
+                    <option value="ru">Русский</option>
+                    <option value="ar">العربية</option>
+                </select>
+            </div>
+            <h1 id="page-title">Contact</h1>
+            <dl>
+                <dt id="phone-label">Phone</dt>
+                <dd>
+                    <a href="tel:0534201812" dir="ltr">0534201812</a>
+                </dd>
+                <dt id="email-label">Email</dt>
+                <dd>
+                    <a href="mailto:dan0krumkop@gmail.com" dir="ltr">
+                        dan0krumkop@gmail.com
+                    </a>
+                </dd>
+                <dt id="name-label">Name</dt>
+                <dd>
+                    <span id="contact-name" class="contact-name" dir="ltr">
+                        <span id="localized-name" lang="en" dir="ltr">
+                            Dan Krumkop
+                        </span>
+                        <span id="hebrew-name" lang="he" dir="rtl" hidden>
+                            (דן קרומקופ)
+                        </span>
+                    </span>
+                </dd>
+            </dl>
+        </main>
+        <script>
+            const copy = {
+                en: {
+                    title: "Contact",
+                    returnToApp: "Return to RT-Radio",
+                    language: "Language",
+                    name: "Name",
+                    localizedName: "Dan Krumkop",
+                    hebrewName: "דן קרומקופ",
+                    phone: "Phone",
+                    email: "Email",
+                },
+                he: {
+                    title: "יצירת קשר",
+                    returnToApp: "חזרה ל-RT-Radio",
+                    language: "שפה",
+                    name: "שם",
+                    localizedName: "דן קרומקופ",
+                    hebrewName: "דן קרומקופ",
+                    phone: "טלפון",
+                    email: "דוא״ל",
+                },
+                ru: {
+                    title: "Контакты",
+                    returnToApp: "Вернуться в RT-Radio",
+                    language: "Язык",
+                    name: "Имя",
+                    localizedName: "Дан Крумкоп",
+                    hebrewName: "דן קרומקופ",
+                    phone: "Телефон",
+                    email: "Электронная почта",
+                },
+                ar: {
+                    title: "اتصل بنا",
+                    returnToApp: "العودة إلى RT-Radio",
+                    language: "اللغة",
+                    name: "الاسم",
+                    localizedName: "دان كرومكوب",
+                    hebrewName: "דן קרומקופ",
+                    phone: "الهاتف",
+                    email: "البريد الإلكتروني",
+                },
+            };
+            const languageSelect =
+                document.getElementById("language-select");
+            const preferredLanguage =
+                localStorage.getItem("rt-radio-language") ||
+                navigator.languages?.[0] ||
+                navigator.language ||
+                "en";
+            function applyLanguage(language) {
+                const normalizedLanguage = copy[language] ? language : "en";
+                const strings = copy[normalizedLanguage];
+                const isHebrew = normalizedLanguage === "he";
+                const isRtl =
+                    normalizedLanguage === "he" ||
+                    normalizedLanguage === "ar";
+
+                document.documentElement.lang = normalizedLanguage;
+                document.documentElement.dir = isRtl ? "rtl" : "ltr";
+                document.title = `RT-Radio | ${strings.title}`;
+                document.getElementById("return-link").textContent =
+                    strings.returnToApp;
+                document.getElementById("language-label").textContent =
+                    strings.language;
+                document.getElementById("page-title").textContent =
+                    strings.title;
+                document.getElementById("name-label").textContent =
+                    strings.name;
+                document.getElementById("phone-label").textContent =
+                    strings.phone;
+                document.getElementById("email-label").textContent =
+                    strings.email;
+                const localizedName =
+                    document.getElementById("localized-name");
+                localizedName.textContent = strings.localizedName;
+                localizedName.lang = normalizedLanguage;
+                localizedName.dir = isRtl ? "rtl" : "ltr";
+                const hebrewName = document.getElementById("hebrew-name");
+                hebrewName.hidden = isHebrew;
+                hebrewName.textContent = `(${strings.hebrewName})`;
+                document.getElementById("contact-name").dir = isRtl
+                    ? "rtl"
+                    : "ltr";
+                languageSelect.value = normalizedLanguage;
+            }
+
+            const initialLanguage =
+                preferredLanguage.toLowerCase().split("-")[0];
+            applyLanguage(initialLanguage);
+            languageSelect.addEventListener("change", () => {
+                localStorage.setItem(
+                    "rt-radio-language",
+                    languageSelect.value,
+                );
+                applyLanguage(languageSelect.value);
+            });
+        </script>
+    </body>
+</html>
