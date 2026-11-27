@@ -54,6 +54,14 @@ describe("ThemeToggle", () => {
         vi.unstubAllGlobals();
     });
 
+    it("uses the same default button size as the page navigation", () => {
+        render(<ThemeToggle />);
+
+        const button = screen.getByRole("button");
+        expect(button).toHaveClass("btn");
+        expect(button).not.toHaveClass("btn-sm");
+    });
+
     it("updates the toggle when the system theme changes", () => {
         document.documentElement.setAttribute("data-bs-theme", "dark");
         render(<ThemeToggle />);

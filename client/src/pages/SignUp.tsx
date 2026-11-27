@@ -5,9 +5,11 @@ import AuthCard from "../components/AuthCard";
 import { useAuth } from "../scripts/useAuth";
 import { supabase } from "../lib/supabase";
 import { MIN_PASSWORD_LENGTH } from "../lib/auth";
+import { useTranslation } from "../components/LanguageProvider";
 
 export default function SignUp() {
     const { session, loading } = useAuth();
+    const { t } = useTranslation();
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [confirmEmail, setConfirmEmail] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export default function SignUp() {
         const password = String(form.get("password") ?? "");
 
         if (password !== String(form.get("confirm") ?? "")) {
-            setError("Passwords do not match.");
+            setError(t("passwordsDoNotMatch"));
             return;
         }
 
@@ -56,7 +58,7 @@ export default function SignUp() {
         // With email confirmation on, Supabase doesn't return an error for an
         // address that is already registered; it returns a user with no identities.
         if (data.user?.identities?.length === 0) {
-            setError("An account with this email already exists.");
+            setError(t("accountAlreadyExists"));
             setBusy(false);
             return;
         }
@@ -71,16 +73,20 @@ export default function SignUp() {
     }
 
     if (confirmEmail) {
+        const [messageBeforeEmail, messageAfterEmail] = t(
+            "confirmationLinkSent",
+        ).split("{email}");
+
         return (
-            <AuthCard title="Check your email" width="32rem">
+            <AuthCard title={t("checkYourEmail")} width="32rem">
                 <Alert variant="success">
-                    We sent a confirmation link to{" "}
-                    <strong>{confirmEmail}</strong>. Open it to activate your
-                    account, then log in.
+                    {messageBeforeEmail}
+                    <strong>{confirmEmail}</strong>
+                    {messageAfterEmail}
                 </Alert>
                 <div className="d-grid">
                     <Link to="/login" className="btn btn-outline-secondary">
-                        Back to Login
+                        {t("backToLogin")}
                     </Link>
                 </div>
             </AuthCard>
@@ -88,12 +94,12 @@ export default function SignUp() {
     }
 
     return (
-        <AuthCard title="Sign Up" width="32rem">
+        <AuthCard title={t("signUpTitle")} width="32rem">
             <Form onSubmit={handleSubmit}>
                 {error && <Alert variant="danger">{error}</Alert>}
 
                 <Form.Group className="mb-3" controlId="email">
-                    <Form.Label>Email Address</Form.Label>
+                    <Form.Label>{t("emailAddressLabel")}</Form.Label>
                     <Form.Control
                         type="email"
                         name="email"
@@ -104,26 +110,29 @@ export default function SignUp() {
                 </Form.Group>
 
                 <Form.Group className="mb-3" controlId="password">
-                    <Form.Label>Password</Form.Label>
+                    <Form.Label>{t("password")}</Form.Label>
                     <Form.Control
                         type="password"
                         name="password"
-                        placeholder="Enter password"
+                        placeholder={t("enterPassword")}
                         autoComplete="new-password"
                         minLength={MIN_PASSWORD_LENGTH}
                         required
                     />
                     <Form.Text muted>
-                        At least {MIN_PASSWORD_LENGTH} characters.
+                        {t("atLeastCharacters").replace(
+                            "{count}",
+                            String(MIN_PASSWORD_LENGTH),
+                        )}
                     </Form.Text>
                 </Form.Group>
 
                 <Form.Group className="mb-3" controlId="confirm">
-                    <Form.Label>Confirm password</Form.Label>
+                    <Form.Label>{t("confirmPassword")}</Form.Label>
                     <Form.Control
                         type="password"
                         name="confirm"
-                        placeholder="Repeat password"
+                        placeholder={t("repeatPassword")}
                         autoComplete="new-password"
                         required
                     />
@@ -132,24 +141,24 @@ export default function SignUp() {
                 <hr className="mb-4" />
 
                 <Form.Group className="mb-4" controlId="phone">
-                    <Form.Label>Phone Number (optional)</Form.Label>
+                    <Form.Label>{t("phoneNumberOptional")}</Form.Label>
                     <Form.Control
                         type="tel"
                         name="phone"
-                        placeholder="Enter phone number"
+                        placeholder={t("enterPhoneNumber")}
                         autoComplete="tel"
                     />
                 </Form.Group>
 
                 <div className="d-grid gap-2">
                     <Button type="submit" variant="primary" disabled={busy}>
-                        {busy ? "Creating account…" : "Sign Up"}
+                        {busy ? t("creatingAccount") : t("signUp")}
                     </Button>
                     <Link
                         to="/login"
                         className="btn btn-outline-secondary text-center"
                     >
-                        Back to Login
+                        {t("backToLogin")}
                     </Link>
                 </div>
             </Form>

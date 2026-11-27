@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import type { Session } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,6 +21,10 @@ import App from "../../src/App";
 
 describe("App routes", () => {
     beforeEach(() => {
+        localStorage.removeItem("rt-radio-language");
+        document.documentElement.lang = "en";
+        document.documentElement.dir = "ltr";
+
         const headersQuery = {
             select: supabaseMocks.headersSelect,
             in: supabaseMocks.headersIn,
@@ -91,5 +96,31 @@ describe("App routes", () => {
         expect(
             screen.getByRole("heading", { name: "Account settings" }),
         ).toBeInTheDocument();
+    });
+
+    it("switches translations and document direction for Hebrew", async () => {
+        const user = userEvent.setup();
+        renderAt("/login");
+
+        await user.click(screen.getByRole("button", { name: "Language" }));
+        await user.click(screen.getByRole("button", { name: "עברית" }));
+
+        expect(
+            screen.getByRole("button", { name: "שפה" }),
+        ).toBeInTheDocument();
+        expect(document.documentElement).toHaveAttribute("lang", "he");
+        expect(document.documentElement).toHaveAttribute("dir", "rtl");
+    });
+
+    it("uses the browser language when there is no saved selection", () => {
+        vi.stubGlobal("navigator", {
+            languages: ["ar-EG"],
+            language: "ar-EG",
+        });
+        renderAt("/login");
+
+        expect(document.documentElement).toHaveAttribute("lang", "ar");
+        expect(document.documentElement).toHaveAttribute("dir", "rtl");
+        vi.unstubAllGlobals();
     });
 });

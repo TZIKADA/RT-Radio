@@ -7,6 +7,8 @@ The client-side of the server where users can get their personalized header for 
 1. Copy `.env.example` to `.env.local`.
 2. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to the values from
    your Supabase project.
+   `VITE_DOCUMENTATION_URL` can point to your instructions page; it defaults
+   to the local `/docs/index.html` placeholder.
 3. Run `npm install`.
 4. Run `npm run dev`.
 
@@ -31,6 +33,10 @@ project credentials or make network requests. Test files are collected in
 4. **Manage your account**
     - Open **Account** to update your Supabase Auth email address or password.
       Email changes may require confirmation based on your Supabase settings.
+5. **Choose a language**
+    - English, Hebrew, Russian, and Arabic are available. The app follows the
+      browser's preferred language on first visit (English when unsupported)
+      and remembers a language selected from the language menu.
 
 The app relies on the existing row-level security policies for `user_headers`
 and `headers` to restrict the list of assigned headers.
