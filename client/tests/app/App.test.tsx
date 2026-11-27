@@ -130,24 +130,62 @@ describe("App routes", () => {
         expect(
             screen.getByRole("heading", { name: "Contact" }),
         ).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Guide" })).toHaveAttribute(
+            "href",
+            "/docs/index.html",
+        );
         expect(
             screen.getByRole("link", { name: "0534201812" }),
         ).toHaveAttribute("href", "tel:0534201812");
     });
 
-    it("keeps the Hebrew name visible and shows its Latin copy outside Hebrew", () => {
-        localStorage.setItem("rt-radio-language", "en");
-        const englishContact = renderAt("/contact");
-
-        expect(screen.getByText("Dan Krumkop")).toBeInTheDocument();
-        expect(screen.getByText("דן קרומקופ")).toBeInTheDocument();
-
-        englishContact.unmount();
-        localStorage.setItem("rt-radio-language", "he");
+    it("switches contact language and adjusts both name copies", async () => {
+        const user = userEvent.setup();
         renderAt("/contact");
 
+        expect(screen.getByText("Dan Krumkop")).toBeInTheDocument();
+        expect(screen.getByText("(דן קרומקופ)")).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Language" }));
+        await user.click(screen.getByRole("button", { name: "עברית" }));
+
+        expect(
+            screen.getByRole("button", { name: "מדריך" }),
+        ).toBeInTheDocument();
         expect(screen.getByText("דן קרומקופ")).toBeInTheDocument();
+        expect(screen.queryByText("(דן קרומקופ)")).not.toBeInTheDocument();
         expect(screen.queryByText("Dan Krumkop")).not.toBeInTheDocument();
+        expect(document.documentElement).toHaveAttribute("dir", "rtl");
+    });
+
+    it.each([
+        ["ru", "Дан Крумкоп", "ltr"],
+        ["ar", "دان كرومكوب", "rtl"],
+    ] as const)(
+        "shows the %s contact name in the page direction",
+        (language, localizedName, direction) => {
+            localStorage.setItem("rt-radio-language", language);
+            renderAt("/contact");
+
+            expect(screen.getByText(localizedName)).toBeInTheDocument();
+            expect(screen.getByText("(דן קרומקופ)")).toBeInTheDocument();
+            expect(
+                screen.getByText(localizedName).closest(".contact-name"),
+            ).toHaveAttribute("dir", direction);
+        },
+    );
+
+    it("returns from the contact page to the app", async () => {
+        const user = userEvent.setup();
+        renderAt("/contact");
+
+        await user.click(
+            screen.getByRole("button", { name: "Return to RT-Radio" }),
+        );
+
+        expect(
+            await screen.findByRole("heading", { name: "RT-Radio" }),
+        ).toBeInTheDocument();
     });
 
     it("switches translations and document direction for Hebrew", async () => {
