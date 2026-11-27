@@ -17,8 +17,9 @@ The client-side of the server where users can get their personalized header for 
 ## Testing
 
 Run the automated test suite once with `npm test`, or use `npm run test:watch`
-while developing. Tests run in jsdom and mock Supabase, so they do not require project
-credentials or make network requests. Test files are collected in `tests/`,
+while developing. Tests run in jsdom and mock Supabase and GitHub API calls, so
+they do not require project credentials or make network requests. Test files
+are collected in `tests/`,
 grouped into `app/`, `auth/`, `components/`, `pages/`, and `lib/`.
 
 ## Usage
@@ -27,10 +28,11 @@ grouped into `app/`, `auth/`, `components/`, `pages/`, and `lib/`.
 2. **Sign up**
     - Optionally provide a phone number for account metadata.
 3. **Sign in**
-    - The home page lists headers assigned to your account through
-      `user_headers`. Card names and descriptions come from `headers`.
-    - Download buttons create a 60-second signed URL for the private
-      `headers` Storage bucket using each row's `storage_path`.
+    - The home page reads assigned header IDs from `user_headers` and their
+      latest-release API URLs from `headers.github_api`.
+    - Cards show the GitHub release title. The info dialog includes its notes,
+      tag, release date, and uploaded assets; the card download link downloads
+      the release source ZIP.
 4. **Manage your account**
     - Open **Account** to update your Supabase Auth email address or password.
       Email changes may require confirmation based on your Supabase settings.
@@ -39,9 +41,7 @@ grouped into `app/`, `auth/`, `components/`, `pages/`, and `lib/`.
       browser's preferred language on first visit (English when unsupported)
       and remembers a language selected from the language menu.
 
-The app relies on the existing row-level security policies for `user_headers`
-and `headers` to restrict the list of assigned headers.
-The provided database schema does not include Storage object policies; signed
-URL creation also requires authenticated `SELECT` access to the matching rows
-in `storage.objects`. Ensure that policy limits access to paths assigned to
-the current user.
+The app relies on row-level security policies for `user_headers` and `headers`
+to restrict the list of assigned headers and their GitHub API URLs.
+Each `headers.github_api` value should point to the public latest-release
+endpoint, such as `https://api.github.com/repos/OWNER/REPO/releases/latest`.

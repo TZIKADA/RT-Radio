@@ -10,7 +10,6 @@ const supabaseMocks = vi.hoisted(() => ({
     assignmentsSelect: vi.fn(),
     headersSelect: vi.fn(),
     headersIn: vi.fn(),
-    headersOrder: vi.fn(),
 }));
 
 vi.mock("../../src/lib/supabase", () => ({
@@ -28,7 +27,6 @@ describe("App routes", () => {
         const headersQuery = {
             select: supabaseMocks.headersSelect,
             in: supabaseMocks.headersIn,
-            order: supabaseMocks.headersOrder,
         };
         supabaseMocks.from.mockImplementation((table: string) =>
             table === "user_headers"
@@ -41,7 +39,6 @@ describe("App routes", () => {
         });
         supabaseMocks.headersSelect.mockReturnValue(headersQuery);
         supabaseMocks.headersIn.mockReturnValue(headersQuery);
-        supabaseMocks.headersOrder.mockResolvedValue({ data: [], error: null });
     });
 
     function renderAt(
