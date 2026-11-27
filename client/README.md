@@ -7,6 +7,10 @@ The client-side of the server where users can get their personalized header for 
 1. Copy `.env.example` to `.env.local`.
 2. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to the values from
    your Supabase project.
+   `VITE_GUIDE_URL` can point to your guide page; it defaults
+   to the local `/guide/index.html` placeholder.
+   The contact details and localized public contact page are in
+   `public/contact.html`.
 3. Run `npm install`.
 4. Run `npm run dev`.
 
@@ -14,18 +18,30 @@ The client-side of the server where users can get their personalized header for 
 
 Run the automated test suite once with `npm test`, or use `npm run test:watch`
 while developing. Tests run in jsdom and mock Supabase, so they do not require
-project credentials or make network requests.
+project credentials or make network requests. Test files are collected in
+`tests/`, grouped into `app/`, `components/`, `pages/`, and `lib/`.
 
 ## Usage
 
 1. **Enter the site.**
 2. **Sign up**
-    - Provide random data, used for internal hashing of headers.
-    - Optionally provide contact information, used for personalization assistance.
+    - Optionally provide a phone number for account metadata.
 3. **Sign in**
-    - Your personal space will contain one or more cards.
-    - Each card contains a doc and a download option.
-4. **Personalize**
-    - You can manage the various fields of your profile at any time.
+    - The home page lists headers assigned to your account through
+      `user_headers`. Card names and descriptions come from `headers`.
+    - Download buttons create a 60-second signed URL for the private
+      `headers` Storage bucket using each row's `storage_path`.
+4. **Manage your account**
+    - Open **Account** to update your Supabase Auth email address or password.
+      Email changes may require confirmation based on your Supabase settings.
+5. **Choose a language**
+    - English, Hebrew, Russian, and Arabic are available. The app follows the
+      browser's preferred language on first visit (English when unsupported)
+      and remembers a language selected from the language menu.
 
-> **Warning:** Reinstall the header after editing your profile.
+The app relies on the existing row-level security policies for `user_headers`
+and `headers` to restrict the list of assigned headers.
+The provided database schema does not include Storage object policies; signed
+URL creation also requires authenticated `SELECT` access to the matching rows
+in `storage.objects`. Ensure that policy limits access to paths assigned to
+the current user.

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Card, Container } from "react-bootstrap";
-import ThemeToggle from "./ToggleTheme";
+import AppControls from "./AppControls";
 
 export default function AuthCard({
     title,
@@ -18,11 +18,11 @@ export default function AuthCard({
         >
             <Card className="shadow" style={{ width, maxWidth: "100%" }}>
                 <Card.Body className="p-4">
-                    <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
                         <Card.Title as="h1" className="h3 mb-0">
                             {title}
                         </Card.Title>
-                        <ThemeToggle />
+                        <AppControls />
                     </div>
                     {children}
                 </Card.Body>

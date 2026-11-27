@@ -1,19 +1,21 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Session } from "@supabase/supabase-js";
 import { MemoryRouter, Route, Routes } from "react-router";
-import { describe, expect, it } from "vitest";
-import { AuthContext } from "../scripts/auth-context";
-import AuthCard from "./AuthCard";
-import RequireAuth from "./RequireAuth";
-import ThemeToggle from "./ToggleTheme";
+import { describe, expect, it, vi } from "vitest";
+import { AuthContext } from "../../src/scripts/auth-context";
+import AuthCard from "../../src/components/AuthCard";
+import RequireAuth from "../../src/components/RequireAuth";
+import ThemeToggle from "../../src/components/ToggleTheme";
 
 describe("AuthCard", () => {
     it("renders its title and child content", () => {
         const { container } = render(
-            <AuthCard title="Test card">
-                <p>Card content</p>
-            </AuthCard>,
+            <MemoryRouter>
+                <AuthCard title="Test card">
+                    <p>Card content</p>
+                </AuthCard>
+            </MemoryRouter>,
         );
 
         expect(
@@ -27,9 +29,11 @@ describe("AuthCard", () => {
 
     it("respects a custom width without overflowing its container", () => {
         const { container } = render(
-            <AuthCard title="Wide card" width="32rem">
-                Content
-            </AuthCard>,
+            <MemoryRouter>
+                <AuthCard title="Wide card" width="32rem">
+                    Content
+                </AuthCard>
+            </MemoryRouter>,
         );
 
         const card = container.querySelector<HTMLElement>(".card");
@@ -39,6 +43,41 @@ describe("AuthCard", () => {
 });
 
 describe("ThemeToggle", () => {
+    it("uses the system preference when no theme has been selected", () => {
+        document.documentElement.removeAttribute("data-bs-theme");
+        vi.stubGlobal(
+            "matchMedia",
+            vi.fn().mockReturnValue({ matches: true }),
+        );
+        render(<ThemeToggle />);
+
+        expect(
+            screen.getByRole("button", { name: "Switch to light mode" }),
+        ).toBeInTheDocument();
+
+        vi.unstubAllGlobals();
+    });
+
+    it("uses the same default button size as the page navigation", () => {
+        render(<ThemeToggle />);
+
+        const button = screen.getByRole("button");
+        expect(button).toHaveClass("btn");
+        expect(button).not.toHaveClass("btn-sm");
+    });
+
+    it("updates the toggle when the system theme changes", () => {
+        document.documentElement.setAttribute("data-bs-theme", "dark");
+        render(<ThemeToggle />);
+
+        document.documentElement.setAttribute("data-bs-theme", "light");
+        act(() => window.dispatchEvent(new Event("system-theme-change")));
+
+        expect(
+            screen.getByRole("button", { name: "Switch to dark mode" }),
+        ).toBeInTheDocument();
+    });
+
     it("switches the document theme and its icon", async () => {
         const user = userEvent.setup();
         document.documentElement.setAttribute("data-bs-theme", "dark");
@@ -52,6 +91,7 @@ describe("ThemeToggle", () => {
             "data-bs-theme",
             "light",
         );
+        expect(localStorage.getItem("rt-radio-theme")).toBe("light");
         expect(button.querySelector(".bi-moon")).toBeInTheDocument();
     });
 
@@ -75,7 +115,7 @@ describe("ThemeToggle", () => {
 describe("RequireAuth", () => {
     function renderGuard(session: Session | null, loading: boolean) {
         return render(
-            <AuthContext.Provider value={{ session, loading }}>
+            <AuthContext.Provider value={{ session, loading, authError: false }}>
                 <MemoryRouter initialEntries={["/private"]}>
                     <Routes>
                         <Route element={<RequireAuth />}>
