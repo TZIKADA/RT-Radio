@@ -175,6 +175,31 @@ describe("Home", () => {
         );
     });
 
+    it("shows a clean description without generated release metadata", async () => {
+        const user = userEvent.setup();
+        supabaseMocks.githubFetch.mockResolvedValue(
+            releaseResponse({
+                body: "A concise header description.\n\n---\n\nCommit: 292ca1c6abad3100a496a9976195d9900a945794\n\nIncluded headers:\n- `hardware/slaves/default/rt-radio-default.h`",
+            }),
+        );
+        renderHome();
+
+        await user.click(
+            await screen.findByRole("button", {
+                name: "Release details: Main Header Release",
+            }),
+        );
+
+        const dialog = screen.getByRole("dialog");
+        expect(
+            within(dialog).getByRole("heading", { name: "Description" }),
+        ).toBeInTheDocument();
+        expect(
+            within(dialog).getByText("A concise header description."),
+        ).toBeInTheDocument();
+        expect(within(dialog).queryByText(/Commit:|Included headers:/)).toBeNull();
+    });
+
     it("does not fetch release rows when the user has no assignments", async () => {
         supabaseMocks.assignmentsSelect.mockResolvedValue({
             data: [],
@@ -316,7 +341,7 @@ describe("Home", () => {
         expect(supabaseMocks.githubFetch).not.toHaveBeenCalled();
     });
 
-    it("shows fallbacks when release notes, dates, and assets are unavailable", async () => {
+    it("shows fallbacks when descriptions, dates, and assets are unavailable", async () => {
         const user = userEvent.setup();
         supabaseMocks.githubFetch.mockResolvedValue(
             releaseResponse({
@@ -335,7 +360,7 @@ describe("Home", () => {
         );
 
         const dialog = screen.getByRole("dialog");
-        expect(within(dialog).getByText("No release notes were provided."))
+        expect(within(dialog).getByText("No description was provided."))
             .toBeInTheDocument();
         expect(within(dialog).getByText("No files are attached to this release."))
             .toBeInTheDocument();
