@@ -6,6 +6,8 @@ import { useTranslation } from "../components/LanguageProvider";
 import { fetchGitHubRelease, type GitHubRelease } from "../lib/github-releases";
 import { logAppError } from "../lib/errors";
 import { supabase } from "../lib/supabase";
+import RefetchButton from "../components/RefetchButton";
+import { useHeaderRelease } from "../hooks/useHeaderRelease";
 
 type HeaderRecord = {
     id: string;
@@ -54,6 +56,29 @@ function formatReleaseDate(date: string | null, language: string) {
 
     return new Intl.DateTimeFormat(language, { dateStyle: "medium" }).format(
         parsedDate,
+    );
+}
+
+function HeaderRelease({ githubApi }: { githubApi: string }) {
+    const { release, loading, checking, error, updateAvailable, refetch } =
+        useHeaderRelease(githubApi);
+
+    if (loading) return <p>…</p>;
+    if (!release) return error ? <p>{error}</p> : null;
+
+    return (
+        <div>
+            <h3>{release.title}</h3>
+            <p>{release.tag}</p>
+
+            <RefetchButton
+                updateAvailable={updateAvailable}
+                checking={checking}
+                onClick={refetch}
+            />
+
+            {error && <p className="text-danger">{error}</p>}
+        </div>
     );
 }
 
@@ -178,8 +203,8 @@ export default function Home() {
                                                     as="h2"
                                                     className="h5 mb-0 text-break"
                                                 >
-                                                    {header.release.title}
-                                                </Card.Title>
+                                                <HeaderRelease githubApi={header.github_api}
+                                                /></Card.Title>
                                                 <div className="mt-auto d-grid gap-2">
                                                     <Button
                                                         variant="outline-secondary"

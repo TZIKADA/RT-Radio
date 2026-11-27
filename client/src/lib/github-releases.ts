@@ -16,6 +16,8 @@ export type GitHubRelease = {
     assets: GitHubReleaseAsset[];
 };
 
+export type FetchReleaseOptions = { writeCache?: boolean };
+
 const GITHUB_DOWNLOAD_HOSTS = new Set([
     "api.github.com",
     "github.com",
@@ -76,7 +78,9 @@ function parseAsset(value: unknown): GitHubReleaseAsset {
 export async function fetchGitHubRelease(
     githubApi: string,
     signal?: AbortSignal,
+    options: FetchReleaseOptions = {},
 ): Promise<GitHubRelease> {
+    const { writeCache = true } = options;
     if (typeof githubApi !== "string") {
         throw new Error("Header is missing its GitHub API URL.");
     }
@@ -131,6 +135,6 @@ export async function fetchGitHubRelease(
     };
 
     // Cache the parsed release so later reads can avoid the GitHub API.
-    writeCachedRelease(githubApi, release);
+    if (writeCache) writeCachedRelease(githubApi, release);
     return release;
 }

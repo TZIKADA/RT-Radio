@@ -271,4 +271,15 @@ describe("fetchGitHubRelease", () => {
       expect(cached?.release.tag).toBe("v1.0.0");
       expect(typeof cached?.fetchedAt).toBe("number");
   });
+
+    it("skips caching when writeCache is false", async () => {
+        fetchMock.mockResolvedValue({
+            ok: true,
+            json: async () => releasePayload,
+        });
+
+        await fetchGitHubRelease(API_URL, undefined, { writeCache: false });
+
+        expect(readCachedRelease(API_URL)).toBeNull();
+    });
 });

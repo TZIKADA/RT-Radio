@@ -71,3 +71,7 @@ export function clearCachedRelease(apiUrl: string): void {
         // ignore
     }
 }
+
+export function isCacheFresh(cached: CachedRelease, ttlMs: number): boolean {
+    return Date.now() - cached.fetchedAt < ttlMs;
+}
