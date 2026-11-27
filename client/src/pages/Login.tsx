@@ -2,7 +2,7 @@ import { useState, type SubmitEvent } from "react";
 import { Link, Navigate } from "react-router";
 import { Button, Form } from "react-bootstrap";
 import AuthCard from "../components/AuthCard";
-import { useAuth } from "../scripts/useAuth";
+import { useAuth } from "../auth/useAuth";
 import { supabase } from "../lib/supabase";
 import { useTranslation } from "../components/LanguageProvider";
 import AdminErrorAlert from "../components/AdminErrorAlert";

@@ -10,7 +10,7 @@ vi.mock("react-dom/client", () => ({
     createRoot: rootMocks.createRoot,
 }));
 vi.mock("../../src/App", () => ({ default: () => null }));
-vi.mock("../../src/components/AuthProvider", () => ({ default: () => null }));
+vi.mock("../../src/auth/AuthProvider", () => ({ default: () => null }));
 vi.mock("bootstrap-icons/font/bootstrap-icons.css", () => ({}));
 vi.mock("../../src/styles/main.scss", () => ({}));
 
