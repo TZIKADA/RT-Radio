@@ -7,7 +7,7 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Never cancel a deploy halfway; queue the next one instead
+# Queue deploys instead of cancelling one halfway through
 concurrency:
   group: client-deploy
   cancel-in-progress: false
@@ -18,9 +18,9 @@ permissions:
 jobs:
   deploy:
     name: Build & deploy to Cloudflare
-    # Only deploy if CI passed on a push (not a PR), or if started manually
+    # CI passed on a push to main, or a manual run on main
     if: >
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
@@ -34,26 +34,21 @@ jobs:
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
     steps:
-      - name: Checkout the commit that passed CI
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
+          # The exact commit that passed CI (head of main for manual runs)
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: client/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
+      - run: npm run build
 
-      - name: Type-check and build
-        run: npm run build
-
-      - name: Deploy to Cloudflare
-        uses: cloudflare/wrangler-action@v3
+      - uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
