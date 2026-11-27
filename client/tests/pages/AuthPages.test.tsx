@@ -219,9 +219,6 @@ describe("SignUp", () => {
                 options: {
                     emailRedirectTo: `${window.location.origin}/`,
                     data: {
-                        name: "",
-                        quest: "",
-                        colour: "",
                         phone: null,
                     },
                 },

@@ -70,8 +70,11 @@ export default function Home() {
 
             if (signedUrlError) throw signedUrlError;
             window.location.assign(data.signedUrl);
-        } catch (downloadError) {
-            logAppError(`Preparing download for header ${header.id} failed`, downloadError);
+        } catch (downloadFailure) {
+            logAppError(
+                `Preparing download for header ${header.id} failed`,
+                downloadFailure,
+            );
             setDownloadError(t("downloadFailed"));
         } finally {
             setDownloadingId(null);
@@ -90,15 +93,9 @@ export default function Home() {
                     </p>
                 </div>
 
-                {error && (
-                    <AdminErrorAlert message={error} />
-                )}
-                {downloadError && (
-                    <AdminErrorAlert message={downloadError} />
-                )}
-                {loading && (
-                    <p className="text-muted">{t("loadingHeaders")}</p>
-                )}
+                {error && <AdminErrorAlert message={error} />}
+                {downloadError && <AdminErrorAlert message={downloadError} />}
+                {loading && <p className="text-muted">{t("loadingHeaders")}</p>}
                 {!loading && !error && headers.length === 0 && (
                     <p className="text-muted">
                         {t("noHeadersAssigned")}

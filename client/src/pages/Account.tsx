@@ -132,15 +132,14 @@ export default function Account() {
                             {t("password")}
                         </Card.Title>
                         <Form onSubmit={updatePassword}>
-                            {passwordError && (
-                                passwordErrorNeedsSupport ? (
+                            {passwordError &&
+                                (passwordErrorNeedsSupport ? (
                                     <AdminErrorAlert message={passwordError} />
                                 ) : (
                                     <Alert variant="danger" role="alert">
                                         {passwordError}
                                     </Alert>
-                                )
-                            )}
+                                ))}
                             {passwordMessage && (
                                 <Alert variant="success" role="status">
                                     {passwordMessage}

@@ -1,7 +1,9 @@
 import {
     createContext,
+    useCallback,
     useContext,
     useEffect,
+    useMemo,
     useState,
     type ReactNode,
 } from "react";
@@ -353,20 +355,23 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
             window.removeEventListener("languagechange", followSystemLanguage);
     }, []);
 
-    function setLanguage(nextLanguage: Language) {
+    const setLanguage = useCallback((nextLanguage: Language) => {
         localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
         setLanguageState(nextLanguage);
-    }
+    }, []);
+
+    const contextValue = useMemo(
+        () => ({
+            language,
+            languageNames,
+            setLanguage,
+            t: (key: TranslationKey) => translations[language][key],
+        }),
+        [language, setLanguage],
+    );
 
     return (
-        <LanguageContext.Provider
-            value={{
-                language,
-                languageNames,
-                setLanguage,
-                t: (key) => translations[language][key],
-            }}
-        >
+        <LanguageContext.Provider value={contextValue}>
             {children}
         </LanguageContext.Provider>
     );

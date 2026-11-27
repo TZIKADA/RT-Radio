@@ -25,8 +25,7 @@ project credentials or make network requests. Test files are collected in
 
 1. **Enter the site.**
 2. **Sign up**
-    - Provide random data, used for internal hashing of headers.
-    - Optionally provide contact information, used for personalization assistance.
+    - Optionally provide a phone number for account metadata.
 3. **Sign in**
     - The home page lists headers assigned to your account through
       `user_headers`. Card names and descriptions come from `headers`.

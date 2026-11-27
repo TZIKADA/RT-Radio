@@ -44,11 +44,7 @@ export default function SignUp() {
                 password,
                 options: {
                     emailRedirectTo: `${window.location.origin}/`,
-                    // Stored in user.user_metadata
                     data: {
-                        name: text("name"),
-                        quest: text("quest"),
-                        colour: text("colour"),
                         phone: text("phone") || null,
                     },
                 },
