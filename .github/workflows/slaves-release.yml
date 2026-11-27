@@ -5,8 +5,6 @@ on:
     branches: [main]
     paths:
       - "hardware/slaves/**"
-      - ".github/workflows/slaves-release.yml"
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -35,7 +33,7 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
@@ -90,7 +88,11 @@ jobs:
             START_SHA="$BEFORE_SHA"
           fi
 
-          if [[ "$START_SHA" =~ ^0+$ ]]; then
+          # Empty BEFORE_SHA (some push edge cases) would make
+          # "$START_SHA..$AFTER_SHA" expand to "..AFTER_SHA", which git reads
+          # as "HEAD..AFTER_SHA" — always empty after checkout. Treat empty
+          # and all-zeros the same way: walk the full history.
+          if [[ -z "$START_SHA" ]] || [[ "$START_SHA" =~ ^0+$ ]]; then
             COMMIT_LIST="$(git rev-list --first-parent --reverse "$AFTER_SHA")"
           else
             COMMIT_LIST="$(git rev-list --first-parent --reverse "$START_SHA..$AFTER_SHA")"
@@ -99,6 +101,13 @@ jobs:
           COMMITS=()
           if [[ -n "$COMMIT_LIST" ]]; then
             mapfile -t COMMITS <<< "$COMMIT_LIST"
+          fi
+
+          echo "Cursor: ${START_SHA:-<none>}"
+          echo "After:  $AFTER_SHA"
+          echo "Commits to process: ${#COMMITS[@]}"
+          if [[ ${#COMMITS[@]} -eq 0 ]]; then
+            echo "::warning::No commits between ${START_SHA:-<none>} and $AFTER_SHA. The cursor will advance to $AFTER_SHA but no release will be created."
           fi
 
           declare -A latest_versions=()
