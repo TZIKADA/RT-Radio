@@ -42,7 +42,7 @@ describe("fetchGitHubRelease", () => {
 
         await expect(fetchGitHubRelease(API_URL)).resolves.toEqual({
             title: "Header v1",
-            notes: "First release",
+            description: "First release",
             tag: "v1.0.0",
             publishedAt: "2025-03-01T10:00:00Z",
             zipballUrl:
@@ -104,9 +104,37 @@ describe("fetchGitHubRelease", () => {
 
         await expect(fetchGitHubRelease(API_URL)).resolves.toMatchObject({
             title: "v1.0.0",
-            notes: null,
+            description: null,
             publishedAt: null,
             assets: [{ contentType: null, size: 0 }],
+        });
+    });
+
+    it("removes generated release metadata while preserving the description", async () => {
+        fetchMock.mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                ...releasePayload,
+                body: "A useful description.\n\n---\n\nCommit: 292ca1c6abad3100a496a9976195d9900a945794\n\nIncluded headers:\n- `hardware/slaves/default/rt-radio-default.h`",
+            }),
+        });
+
+        await expect(fetchGitHubRelease(API_URL)).resolves.toMatchObject({
+            description: "A useful description.",
+        });
+    });
+
+    it("returns null for release notes containing only generated metadata", async () => {
+        fetchMock.mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                ...releasePayload,
+                body: "\n\n---\n\nCommit: 292ca1c6abad3100a496a9976195d9900a945794\n\nIncluded headers:\n- `hardware/slaves/default/rt-radio-default.h`",
+            }),
+        });
+
+        await expect(fetchGitHubRelease(API_URL)).resolves.toMatchObject({
+            description: null,
         });
     });
 

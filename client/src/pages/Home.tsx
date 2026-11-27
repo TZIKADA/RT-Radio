@@ -253,10 +253,10 @@ export default function Home() {
                                 )}
                             </dl>
 
-                            <h3 className="h6">{t("releaseNotes")}</h3>
-                            <div className="release-notes mb-4">
-                                {selectedHeader.release.notes?.trim() ||
-                                    t("noReleaseNotes")}
+                            <h3 className="h6">{t("description")}</h3>
+                            <div className="release-description mb-4">
+                                {selectedHeader.release.description ||
+                                    t("noReleaseDescription")}
                             </div>
 
                             <h3 className="h6">{t("releaseFiles")}</h3>
