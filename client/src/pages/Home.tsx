@@ -80,7 +80,7 @@ export default function Home() {
 
     return (
         <Container className="py-5">
-            <AppControls showAccount />
+            <AppControls />
 
             <main className="pt-3">
                 <div className="mb-4">
