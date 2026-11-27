@@ -18,6 +18,9 @@
 
 .app-control-button {
     height: 3rem;
+    // Outline buttons are transparent, so page content shows through them
+    // while scrolling. Give them the page background so they stay solid.
+    --bs-btn-bg: var(--bs-body-bg);
 }
 
 .app-menu-item {
