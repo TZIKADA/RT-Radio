@@ -60,7 +60,7 @@
             dl {
                 display: grid;
                 grid-template-columns: max-content minmax(0, 1fr);
-                width: max-content;
+                width: 100%;
                 max-width: 100%;
                 gap: 1rem;
                 margin-bottom: 0;
@@ -80,9 +80,14 @@
             .contact-name {
                 display: inline-flex;
                 align-items: baseline;
+                flex-wrap: wrap;
+                justify-content: flex-end;
                 gap: 0.5em;
-                white-space: nowrap;
                 unicode-bidi: isolate;
+            }
+
+            a[dir="ltr"] {
+                overflow-wrap: anywhere;
             }
 
             [hidden] {
@@ -128,6 +133,12 @@
                 overflow: hidden;
                 clip: rect(0, 0, 0, 0);
                 white-space: nowrap;
+            }
+
+            @media (max-width: 24rem) {
+                dl {
+                    grid-template-columns: minmax(0, 1fr);
+                }
             }
 
         </style>
