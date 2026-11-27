@@ -21,11 +21,15 @@ jobs:
       - name: Validate Supabase credentials
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: |
           set -euo pipefail
-          if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_SERVICE_ROLE_KEY" ]]; then
-            echo "::error::Configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY as repository Actions secrets."
+          if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_SECRET_KEY" ]]; then
+            echo "::error::Configure SUPABASE_URL and SUPABASE_SECRET_KEY as repository Actions secrets."
+            exit 1
+          fi
+          if [[ "$SUPABASE_SECRET_KEY" != sb_secret_* ]]; then
+            echo "::error::SUPABASE_SECRET_KEY must be a Supabase secret API key, not a legacy JWT."
             exit 1
           fi
 
@@ -41,7 +45,7 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
           AFTER_SHA: ${{ github.sha }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: |
           set -euo pipefail
 
@@ -217,8 +221,7 @@ jobs:
                 --data-urlencode "select=id,github_api" \
                 --data-urlencode "github_api=like.${API_PREFIX}*" \
                 --data-urlencode "order=id.asc" \
-                -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-                -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                -H "apikey: $SUPABASE_SECRET_KEY" \
                 -H "Range: $OFFSET-$((OFFSET + PAGE_SIZE - 1))"
             )"
             PAGE_COUNT="$(jq 'length' <<< "$PAGE")"
@@ -274,8 +277,7 @@ jobs:
           if [[ "$(jq 'length' <<< "$NEW_ROWS")" -gt 0 ]]; then
             curl --fail-with-body --silent --show-error \
               --request POST "$REST_HEADERS_URL" \
-              -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "apikey: $SUPABASE_SECRET_KEY" \
               -H "Content-Type: application/json" \
               -H "Prefer: return=minimal" \
               --data "$NEW_ROWS"
@@ -293,8 +295,7 @@ jobs:
             payload="$(jq -cn --arg github_api "$github_api" '{github_api: $github_api}')"
             curl --fail-with-body --silent --show-error \
               --request PATCH "$REST_HEADERS_URL?id=eq.$id" \
-              -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "apikey: $SUPABASE_SECRET_KEY" \
               -H "Content-Type: application/json" \
               -H "Prefer: return=minimal" \
               --data "$payload"
@@ -313,8 +314,7 @@ jobs:
             id_csv="$(IFS=,; printf '%s' "${batch[*]}")"
             curl --fail-with-body --silent --show-error \
               --request DELETE "$REST_HEADERS_URL?id=in.($id_csv)" \
-              -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "apikey: $SUPABASE_SECRET_KEY" \
               -H "Prefer: return=minimal"
           done
 

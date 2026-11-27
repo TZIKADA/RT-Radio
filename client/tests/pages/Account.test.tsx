@@ -58,6 +58,18 @@ describe("Account", () => {
         ).toBeInTheDocument();
     });
 
+    it("does not submit an unchanged email address", async () => {
+        const user = userEvent.setup();
+        renderAccount();
+
+        await user.click(screen.getByRole("button", { name: "Update email" }));
+
+        expect(supabaseMocks.updateUser).not.toHaveBeenCalled();
+        expect(
+            await screen.findByText("That is already the email on your account."),
+        ).toBeInTheDocument();
+    });
+
     it("validates password confirmation and updates the password", async () => {
         const user = userEvent.setup();
         renderAccount();
@@ -118,6 +130,36 @@ describe("Account", () => {
         );
         expect(consoleError).toHaveBeenCalledWith(
             "[RT-Radio] Updating account email failed",
+            updateError,
+        );
+    });
+
+    it("shows a support link when a password update fails", async () => {
+        const user = userEvent.setup();
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        const updateError = new Error("Password update failed");
+        supabaseMocks.updateUser.mockResolvedValue({ error: updateError });
+        renderAccount();
+
+        await user.type(screen.getByLabelText("New password"), "newpassword");
+        await user.type(
+            screen.getByLabelText("Confirm new password"),
+            "newpassword",
+        );
+        await user.click(
+            screen.getByRole("button", { name: "Update password" }),
+        );
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't complete that request. Please try again.",
+        );
+        expect(
+            screen.getByRole("link", { name: "contact the site administrator." }),
+        ).toHaveAttribute("href", "/contact");
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Updating account password failed",
             updateError,
         );
     });
