@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Card, Col, Container, Modal, Row } from "react-bootstrap";
 import AppControls from "../components/AppControls";
 import AdminErrorAlert from "../components/AdminErrorAlert";
@@ -60,97 +60,88 @@ function formatReleaseDate(date: string | null, language: string) {
 export default function Home() {
     const { language, t } = useTranslation();
     const [headers, setHeaders] = useState<AssignedHeader[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
+    const [hasFetched, setHasFetched] = useState(false);
     const [error, setError] = useState(false);
-    const [selectedHeader, setSelectedHeader] =
-        useState<AssignedHeader | null>(null);
+    const controllerRef = useRef<AbortController | null>(null);
+    const [selectedHeader, setSelectedHeader] = useState<AssignedHeader | null>(
+        null,
+    );
 
     const sortedHeaders = useMemo(
         () =>
             [...headers].sort((left, right) =>
-                left.release.title.localeCompare(
-                    right.release.title,
-                    language,
-                ),
+                left.release.title.localeCompare(right.release.title, language),
             ),
         [headers, language],
     );
 
-    useEffect(() => {
+    // Cancel any request still in flight when the page is left.
+    useEffect(() => () => controllerRef.current?.abort(), []);
+
+    async function loadHeaders() {
+        controllerRef.current?.abort();
         const controller = new AbortController();
-        let active = true;
+        controllerRef.current = controller;
 
-        async function loadHeaders() {
-            setLoading(true);
-            setError(false);
-            setHeaders([]);
+        setLoading(true);
+        setError(false);
 
-            try {
-                const { data: assignments, error: assignmentsError } =
-                    await supabase.from("user_headers").select("header_id");
+        try {
+            const { data: assignments, error: assignmentsError } =
+                await supabase.from("user_headers").select("header_id");
 
-                if (assignmentsError) throw assignmentsError;
+            if (assignmentsError) throw assignmentsError;
 
-                const headerIds = (assignments ?? []).map(
-                    (assignment) => assignment.header_id,
-                );
-                if (headerIds.length === 0) return;
+            const headerIds = (assignments ?? []).map(
+                (assignment) => assignment.header_id,
+            );
+            if (headerIds.length === 0) {
+                setHeaders([]);
+                return;
+            }
 
-                const { data: headerRows, error: headersError } = await supabase
-                    .from("headers")
-                    .select("id,github_api")
-                    .in("id", headerIds);
+            const { data: headerRows, error: headersError } = await supabase
+                .from("headers")
+                .select("id,github_api")
+                .in("id", headerIds);
 
-                if (headersError) throw headersError;
+            if (headersError) throw headersError;
 
-                const releasesByApi = new Map<
-                    string,
-                    Promise<GitHubRelease>
-                >();
-                const assignedHeaders = await Promise.all(
-                    (headerRows ?? []).map(async (record) => {
-                        const header = parseHeaderRecord(record);
-                        let releaseRequest = releasesByApi.get(
+            const releasesByApi = new Map<string, Promise<GitHubRelease>>();
+            const assignedHeaders = await Promise.all(
+                (headerRows ?? []).map(async (record) => {
+                    const header = parseHeaderRecord(record);
+                    let releaseRequest = releasesByApi.get(header.github_api);
+                    if (!releaseRequest) {
+                        releaseRequest = fetchGitHubRelease(
                             header.github_api,
+                            controller.signal,
                         );
-                        if (!releaseRequest) {
-                            releaseRequest = fetchGitHubRelease(
-                                header.github_api,
-                                controller.signal,
-                            );
-                            releasesByApi.set(
-                                header.github_api,
-                                releaseRequest,
-                            );
-                        }
+                        releasesByApi.set(header.github_api, releaseRequest);
+                    }
 
-                        return {
-                            ...header,
-                            release: await releaseRequest,
-                        };
-                    }),
-                );
+                    return {
+                        ...header,
+                        release: await releaseRequest,
+                    };
+                }),
+            );
 
-                if (active) setHeaders(assignedHeaders);
-            } catch (loadError) {
-                if (controller.signal.aborted) return;
+            if (!controller.signal.aborted) setHeaders(assignedHeaders);
+        } catch (loadError) {
+            if (controller.signal.aborted) return;
 
-                logAppError(
-                    "Loading assigned header releases failed",
-                    loadError,
-                );
-                if (active) setError(true);
-            } finally {
-                if (active) setLoading(false);
+            logAppError("Loading assigned header releases failed", loadError);
+            setHeaders([]);
+            setError(true);
+        } finally {
+            if (!controller.signal.aborted) {
+                setLoading(false);
+                setHasFetched(true);
             }
         }
-
-        void loadHeaders();
-        return () => {
-            active = false;
-            controller.abort();
-        };
-    }, []);
+    }
 
     const releaseDate = selectedHeader
         ? formatReleaseDate(selectedHeader.release.publishedAt, language)
@@ -163,15 +154,21 @@ export default function Home() {
             <main className="my-auto pt-5">
                 <h1 className="visually-hidden">{t("yourHeaders")}</h1>
 
-                {error && <AdminErrorAlert message={t("headersLoadFailed")} />}
-                {loading && <p className="text-muted">{t("loadingHeaders")}</p>}
-                {!loading && !error && sortedHeaders.length === 0 && (
-                    <p className="text-muted">{t("noHeadersAssigned")}</p>
-                )}
+                <Card className="shadow-sm">
+                    <Card.Body className="p-4">
+                        {error && (
+                            <AdminErrorAlert message={t("headersLoadFailed")} />
+                        )}
+                        {hasFetched &&
+                            !loading &&
+                            !error &&
+                            sortedHeaders.length === 0 && (
+                                <p className="text-muted text-center">
+                                    {t("noHeadersAssigned")}
+                                </p>
+                            )}
 
-                {!loading && !error && sortedHeaders.length > 0 && (
-                    <Card className="shadow-sm">
-                        <Card.Body className="p-4">
+                        {!error && sortedHeaders.length > 0 && (
                             <Row xs={1} sm={2} md={3} xl={4} className="g-4">
                                 {sortedHeaders.map((header) => (
                                     <Col key={header.id}>
@@ -219,9 +216,45 @@ export default function Home() {
                                     </Col>
                                 ))}
                             </Row>
-                        </Card.Body>
-                    </Card>
-                )}
+                        )}
+
+                        <div
+                            className={`text-center${sortedHeaders.length > 0 ? " mt-4" : ""}`}
+                        >
+                            {hasFetched ? (
+                                <Button
+                                    variant="outline-secondary"
+                                    className="d-inline-flex align-items-center gap-2"
+                                    onClick={() => void loadHeaders()}
+                                    disabled={loading}
+                                >
+                                    <i
+                                        className="bi bi-arrow-repeat"
+                                        aria-hidden="true"
+                                    />
+                                    {loading
+                                        ? t("loadingHeaders")
+                                        : t("refetchFiles")}
+                                </Button>
+                            ) : (
+                                <Button
+                                    size="lg"
+                                    className="px-5 py-4 fs-4 d-inline-flex align-items-center gap-3"
+                                    onClick={() => void loadHeaders()}
+                                    disabled={loading}
+                                >
+                                    <i
+                                        className="bi bi-cloud-download"
+                                        aria-hidden="true"
+                                    />
+                                    {loading
+                                        ? t("loadingHeaders")
+                                        : t("fetchFiles")}
+                                </Button>
+                            )}
+                        </div>
+                    </Card.Body>
+                </Card>
             </main>
 
             <Modal
@@ -252,7 +285,8 @@ export default function Home() {
                                             <time
                                                 dateTime={
                                                     selectedHeader.release
-                                                        .publishedAt ?? undefined
+                                                        .publishedAt ??
+                                                    undefined
                                                 }
                                             >
                                                 {releaseDate}
@@ -263,7 +297,10 @@ export default function Home() {
                             </dl>
 
                             <h3 className="h6 fw-bold">{t("description")}</h3>
-                            <div className="release-description mb-4" dir="auto">
+                            <div
+                                className="release-description mb-4"
+                                dir="auto"
+                            >
                                 {selectedHeader.release.description ||
                                     t("noReleaseDescription")}
                             </div>

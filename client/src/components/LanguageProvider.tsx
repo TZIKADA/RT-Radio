@@ -90,6 +90,8 @@ const english = {
     deleteAccountConfirm: "Delete your account permanently? This can't be undone.",
     cancel: "Cancel",
     deleting: "Deleting…",
+    fetchFiles: "Fetch files",
+    refetchFiles: "Refetch files",
 };
 
 type TranslationKey = keyof typeof english;
@@ -177,6 +179,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
         deleteAccountConfirm: "למחוק את החשבון לצמיתות? אי אפשר לבטל את הפעולה.",
         cancel: "ביטול",
         deleting: "מוחק…",
+        fetchFiles: "טעינת קבצים",
+        refetchFiles: "טעינה מחדש של הקבצים",
     },
     ru: {
         language: "Язык",
@@ -258,6 +262,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
         deleteAccountConfirm: "Удалить учётную запись навсегда? Это действие нельзя отменить.",
         cancel: "Отмена",
         deleting: "Удаление…",
+        fetchFiles: "Получить файлы",
+        refetchFiles: "Получить файлы заново",
     },
     ar: {
         language: "اللغة",
@@ -339,6 +345,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
         deleteAccountConfirm: "هل تريد حذف حسابك نهائيًا؟ لا يمكن التراجع عن ذلك.",
         cancel: "إلغاء",
         deleting: "جارٍ الحذف…",
+        fetchFiles: "جلب الملفات",
+        refetchFiles: "إعادة جلب الملفات",
     },
 };
 

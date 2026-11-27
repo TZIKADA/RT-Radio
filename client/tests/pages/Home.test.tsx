@@ -83,6 +83,55 @@ describe("Home", () => {
         );
     }
 
+    async function fetchFiles() {
+        await userEvent.click(
+            await screen.findByRole("button", { name: "Fetch files" }),
+        );
+    }
+
+    it("does not fetch anything until the fetch button is pressed", async () => {
+        renderHome();
+
+        expect(
+            screen.getByRole("button", { name: "Fetch files" }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole("button", { name: "Refetch files" }),
+        ).not.toBeInTheDocument();
+        expect(supabaseMocks.from).not.toHaveBeenCalled();
+        expect(supabaseMocks.githubFetch).not.toHaveBeenCalled();
+
+        await fetchFiles();
+
+        expect(
+            await screen.findByRole("heading", { name: "Main Header Release" }),
+        ).toBeInTheDocument();
+        expect(supabaseMocks.githubFetch).toHaveBeenCalledOnce();
+    });
+
+    it("replaces the fetch button with a refetch button that fetches again", async () => {
+        const user = userEvent.setup();
+        renderHome();
+        await fetchFiles();
+
+        const refetch = await screen.findByRole("button", {
+            name: "Refetch files",
+        });
+        expect(
+            screen.queryByRole("button", { name: "Fetch files" }),
+        ).not.toBeInTheDocument();
+        expect(supabaseMocks.githubFetch).toHaveBeenCalledTimes(1);
+
+        await user.click(refetch);
+
+        await waitFor(() =>
+            expect(supabaseMocks.githubFetch).toHaveBeenCalledTimes(2),
+        );
+        expect(
+            await screen.findByRole("button", { name: "Refetch files" }),
+        ).toBeEnabled();
+    });
+
     it("loads assigned releases and shows release information and downloads", async () => {
         const user = userEvent.setup();
         supabaseMocks.assignmentsSelect.mockResolvedValue({
@@ -112,6 +161,7 @@ describe("Home", () => {
                 }),
             );
         renderHome();
+        await fetchFiles();
 
         expect(
             await screen.findByRole("heading", {
@@ -183,6 +233,7 @@ describe("Home", () => {
             }),
         );
         renderHome();
+        await fetchFiles();
 
         await user.click(
             await screen.findByRole("button", {
@@ -206,6 +257,7 @@ describe("Home", () => {
             error: null,
         });
         renderHome();
+        await fetchFiles();
 
         expect(
             await screen.findByText(
@@ -230,6 +282,7 @@ describe("Home", () => {
             error: null,
         });
         renderHome();
+        await fetchFiles();
 
         expect(
             await screen.findAllByRole("heading", {
@@ -252,6 +305,7 @@ describe("Home", () => {
             error: assignmentError,
         });
         renderHome();
+        await fetchFiles();
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
             "We couldn't load your files. If the issue persists, contact the site administrator.",
@@ -276,6 +330,7 @@ describe("Home", () => {
             error: headersError,
         });
         renderHome();
+        await fetchFiles();
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
             "We couldn't load your files.",
@@ -293,6 +348,7 @@ describe("Home", () => {
             error: null,
         });
         renderHome();
+        await fetchFiles();
 
         expect(
             await screen.findByText(
@@ -311,6 +367,7 @@ describe("Home", () => {
             status: 403,
         });
         renderHome();
+        await fetchFiles();
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
             "We couldn't load your files. If the issue persists, contact the site administrator.",
@@ -330,6 +387,7 @@ describe("Home", () => {
             error: null,
         });
         renderHome();
+        await fetchFiles();
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
             "We couldn't load your files.",
@@ -352,6 +410,7 @@ describe("Home", () => {
             }),
         );
         renderHome();
+        await fetchFiles();
 
         await user.click(
             await screen.findByRole("button", {
