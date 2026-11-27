@@ -105,6 +105,28 @@ describe("App routes", () => {
         expect(
             screen.getByRole("link", { name: "Account settings" }),
         ).toHaveAttribute("href", "/account");
+        const [primaryDivider, secondaryDivider] =
+            screen.getAllByRole("separator");
+        expect(
+            screen
+                .getByRole("link", { name: "Downloads" })
+                .compareDocumentPosition(primaryDivider),
+        ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+        expect(
+            primaryDivider.compareDocumentPosition(
+                screen.getByRole("link", { name: "Account settings" }),
+            ),
+        ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+        expect(
+            screen
+                .getByRole("link", { name: "Account settings" })
+                .compareDocumentPosition(secondaryDivider),
+        ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+        expect(
+            secondaryDivider.compareDocumentPosition(
+                screen.getByRole("link", { name: "Guide" }),
+            ),
+        ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
         expect(screen.getByRole("link", { name: "Guide" })).toHaveAttribute(
             "href",
             "/guide/index.html",
@@ -182,10 +204,21 @@ describe("App routes", () => {
         expect(
             screen.getByRole("link", { name: "Forgot password" }),
         ).toHaveAttribute("href", "/forgot-password");
+        const divider = screen.getByRole("separator");
+        expect(
+            screen
+                .getByRole("link", { name: "Forgot password" })
+                .compareDocumentPosition(divider),
+        ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
         expect(screen.getByRole("link", { name: "Guide" })).toHaveAttribute(
             "href",
             "/guide/index.html",
         );
+        expect(
+            divider.compareDocumentPosition(
+                screen.getByRole("link", { name: "Guide" }),
+            ),
+        ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
         expect(screen.getByRole("link", { name: "Contact" })).toHaveAttribute(
             "href",
             "/contact",

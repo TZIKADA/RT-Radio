@@ -18,11 +18,6 @@ export default function AppControls() {
                   label: t("downloads"),
                   icon: "bi-download",
               },
-              {
-                  path: "/account",
-                  label: t("accountSettings"),
-                  icon: "bi-person-gear",
-              },
           ]
         : [
               {
@@ -72,6 +67,26 @@ export default function AppControls() {
                             </span>
                         </Dropdown.Item>
                     ))}
+                    <Dropdown.Divider />
+                    {session && (
+                        <Dropdown.Item
+                            as={Link}
+                            to="/account"
+                            className="app-menu-item"
+                        >
+                            <i
+                                className="bi bi-person-gear app-menu-item-icon"
+                                aria-hidden="true"
+                            />
+                            <span
+                                className="app-menu-item-label"
+                                dir={textDirection}
+                            >
+                                {t("accountSettings")}
+                            </span>
+                        </Dropdown.Item>
+                    )}
+                    {session && <Dropdown.Divider />}
                     <Dropdown.Item
                         as="a"
                         className="app-menu-item"
