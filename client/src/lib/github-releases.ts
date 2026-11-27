@@ -1,3 +1,5 @@
+import { writeCachedRelease } from "./release-cache";
+
 export type GitHubReleaseAsset = {
     name: string;
     size: number;
@@ -113,7 +115,7 @@ export async function fetchGitHubRelease(
 
     const tag = data.tag_name;
     const description = extractReleaseDescription(data.body);
-    return {
+    const release: GitHubRelease = {
         title:
             typeof data.name === "string" && data.name.trim()
                 ? data.name
@@ -121,7 +123,14 @@ export async function fetchGitHubRelease(
         description,
         tag,
         publishedAt: data.published_at,
-        zipballUrl: parseGitHubDownloadUrl(data.zipball_url, "source archive URL"),
+        zipballUrl: parseGitHubDownloadUrl(
+            data.zipball_url,
+            "source archive URL",
+        ),
         assets: data.assets.map(parseAsset),
     };
+
+    // Cache the parsed release so later reads can avoid the GitHub API.
+    writeCachedRelease(githubApi, release);
+    return release;
 }

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchGitHubRelease } from "../../src/lib/github-releases";
+import { readCachedRelease } from "../../src/lib/release-cache";
 
 const API_URL = "https://api.github.com/repos/example/header/releases/latest";
 const TAG_API_URL =
@@ -28,6 +29,7 @@ describe("fetchGitHubRelease", () => {
     beforeEach(() => {
         vi.stubGlobal("fetch", fetchMock);
         fetchMock.mockReset();
+        localStorage.clear();
     });
 
     afterEach(() => {
@@ -255,4 +257,18 @@ describe("fetchGitHubRelease", () => {
         );
         expect(fetchMock).not.toHaveBeenCalled();
     });
+
+
+    it("caches the fetched release locally", async () => {
+      fetchMock.mockResolvedValue({
+          ok: true,
+          json: async () => releasePayload,
+      });
+
+      await fetchGitHubRelease(API_URL);
+
+      const cached = readCachedRelease(API_URL);
+      expect(cached?.release.tag).toBe("v1.0.0");
+      expect(typeof cached?.fetchedAt).toBe("number");
+  });
 });
