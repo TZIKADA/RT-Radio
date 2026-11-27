@@ -55,3 +55,15 @@ jobs:
 
       - name: Type-check and build
         run: npm run build
+
+      # Validates wrangler.jsonc, the assets directory and the Wrangler version. Uploads nothing.
+      - name: Cloudflare deploy dry run
+        run: npx wrangler deploy --dry-run
+
+      # Checks that the API token works. Skipped when secrets aren't available (PRs from forks).
+      - name: Cloudflare credentials check
+        if: github.event.pull_request.head.repo.fork != true
+        run: npx wrangler whoami
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
