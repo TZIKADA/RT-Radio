@@ -110,7 +110,7 @@ describe("ThemeToggle", () => {
 describe("RequireAuth", () => {
     function renderGuard(session: Session | null, loading: boolean) {
         return render(
-            <AuthContext.Provider value={{ session, loading }}>
+            <AuthContext.Provider value={{ session, loading, authError: false }}>
                 <MemoryRouter initialEntries={["/private"]}>
                     <Routes>
                         <Route element={<RequireAuth />}>

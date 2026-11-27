@@ -5,6 +5,7 @@ import AuthCard from "../components/AuthCard";
 import { useAuth } from "../scripts/useAuth";
 import { supabase } from "../lib/supabase";
 import { useTranslation } from "../components/LanguageProvider";
+import { logAppError, withAdminContact } from "../lib/errors";
 
 export default function Login() {
     const { session, loading } = useAuth();
@@ -25,13 +26,21 @@ export default function Login() {
         setBusy(true);
         setError(null);
 
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
+        try {
+            const { error: signInError } =
+                await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
 
-        if (signInError) {
-            setError(signInError.message);
+            if (signInError) {
+                logAppError("Signing in failed", signInError);
+                setError(withAdminContact(t("signInFailed")));
+            }
+        } catch (signInError) {
+            logAppError("Signing in failed", signInError);
+            setError(withAdminContact(t("signInFailed")));
+        } finally {
             setBusy(false);
         }
     }

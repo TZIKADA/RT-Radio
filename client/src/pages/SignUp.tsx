@@ -6,6 +6,7 @@ import { useAuth } from "../scripts/useAuth";
 import { supabase } from "../lib/supabase";
 import { MIN_PASSWORD_LENGTH } from "../lib/auth";
 import { useTranslation } from "../components/LanguageProvider";
+import { logAppError, withAdminContact } from "../lib/errors";
 
 export default function SignUp() {
     const { session, loading } = useAuth();
@@ -34,40 +35,45 @@ export default function SignUp() {
         }
 
         setBusy(true);
-        const { data, error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                emailRedirectTo: `${window.location.origin}/`,
-                // Stored in user.user_metadata
-                data: {
-                    name: text("name"),
-                    quest: text("quest"),
-                    colour: text("colour"),
-                    phone: text("phone") || null,
+        try {
+            const { data, error: signUpError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    emailRedirectTo: `${window.location.origin}/`,
+                    // Stored in user.user_metadata
+                    data: {
+                        name: text("name"),
+                        quest: text("quest"),
+                        colour: text("colour"),
+                        phone: text("phone") || null,
+                    },
                 },
-            },
-        });
+            });
 
-        if (signUpError) {
-            setError(signUpError.message);
-            setBusy(false);
-            return;
-        }
+            if (signUpError) {
+                logAppError("Creating account failed", signUpError);
+                setError(withAdminContact(t("requestFailed")));
+                return;
+            }
 
-        // With email confirmation on, Supabase doesn't return an error for an
-        // address that is already registered; it returns a user with no identities.
-        if (data.user?.identities?.length === 0) {
-            setError(t("accountAlreadyExists"));
-            setBusy(false);
-            return;
-        }
+            // With email confirmation on, Supabase doesn't return an error for an
+            // address that is already registered; it returns a user with no identities.
+            if (data.user?.identities?.length === 0) {
+                setError(t("accountAlreadyExists"));
+                return;
+            }
 
-        // Confirmation off: data.session is set, the auth context updates and
-        // the <Navigate> above sends the user home.
-        // Confirmation on: no session yet, so tell the user to check their email.
-        if (!data.session) {
-            setConfirmEmail(email);
+            // Confirmation off: data.session is set, the auth context updates and
+            // the <Navigate> above sends the user home.
+            // Confirmation on: no session yet, so tell the user to check their email.
+            if (!data.session) {
+                setConfirmEmail(email);
+            }
+        } catch (signUpError) {
+            logAppError("Creating account failed", signUpError);
+            setError(withAdminContact(t("requestFailed")));
+        } finally {
             setBusy(false);
         }
     }

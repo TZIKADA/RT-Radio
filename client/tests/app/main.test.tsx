@@ -27,9 +27,13 @@ describe("application entry point", () => {
 
     afterEach(() => {
         vi.unstubAllEnvs();
+        vi.restoreAllMocks();
     });
 
-    it("shows setup instructions when Supabase configuration is missing", async () => {
+    it("shows a generic startup error and logs missing Supabase configuration", async () => {
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
         await import("../../src/main");
 
         expect(rootMocks.createRoot).toHaveBeenCalledWith(
@@ -37,9 +41,16 @@ describe("application entry point", () => {
         );
         expect(rootMocks.render).toHaveBeenCalledOnce();
         const markup = renderToStaticMarkup(rootMocks.render.mock.calls[0][0]);
-        expect(markup).toContain("RT-Radio setup required");
-        expect(markup).toContain("VITE_SUPABASE_URL");
-        expect(markup).toContain("VITE_SUPABASE_PUBLISHABLE_KEY");
+        expect(markup).toContain("Unable to start RT-Radio");
+        expect(markup).toContain("Please notify the site administrator");
+        expect(markup).not.toContain("VITE_SUPABASE_URL");
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Missing Supabase configuration",
+            {
+                supabaseUrlConfigured: false,
+                supabasePublishableKeyConfigured: false,
+            },
+        );
     });
 
     it("loads the application when Supabase configuration is present", async () => {
@@ -51,6 +62,6 @@ describe("application entry point", () => {
 
         expect(rootMocks.render).toHaveBeenCalledOnce();
         const markup = renderToStaticMarkup(rootMocks.render.mock.calls[0][0]);
-        expect(markup).not.toContain("RT-Radio setup required");
+        expect(markup).not.toContain("Unable to start RT-Radio");
     });
 });

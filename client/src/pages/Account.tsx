@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../scripts/useAuth";
 import AppControls from "../components/AppControls";
 import { useTranslation } from "../components/LanguageProvider";
+import { logAppError, withAdminContact } from "../lib/errors";
 
 export default function Account() {
     const { session } = useAuth();
@@ -40,12 +41,8 @@ export default function Account() {
                 t("confirmEmailChange"),
             );
         } catch (updateError) {
-            console.error(updateError);
-            setEmailError(
-                updateError instanceof Error
-                    ? updateError.message
-                    : t("unexpectedEmailUpdateError"),
-            );
+            logAppError("Updating account email failed", updateError);
+            setEmailError(withAdminContact(t("requestFailed")));
         } finally {
             setEmailBusy(false);
         }
@@ -73,12 +70,8 @@ export default function Account() {
             form.reset();
             setPasswordMessage(t("passwordUpdated"));
         } catch (updateError) {
-            console.error(updateError);
-            setPasswordError(
-                updateError instanceof Error
-                    ? updateError.message
-                    : t("unexpectedPasswordUpdateError"),
-            );
+            logAppError("Updating account password failed", updateError);
+            setPasswordError(withAdminContact(t("requestFailed")));
         } finally {
             setPasswordBusy(false);
         }
