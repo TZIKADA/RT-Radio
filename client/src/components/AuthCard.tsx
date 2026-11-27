@@ -5,12 +5,10 @@ import AppControls from "./AppControls";
 export default function AuthCard({
     title,
     width = "25rem",
-    showContact = true,
     children,
 }: {
     title: string;
     width?: string;
-    showContact?: boolean;
     children: ReactNode;
 }) {
     return (
@@ -24,7 +22,7 @@ export default function AuthCard({
                         <Card.Title as="h1" className="h3 mb-0">
                             {title}
                         </Card.Title>
-                        <AppControls showContact={showContact} />
+                        <AppControls />
                     </div>
                     {children}
                 </Card.Body>

@@ -83,7 +83,7 @@ export default function Account() {
 
     return (
         <Container className="py-5" style={{ maxWidth: "48rem" }}>
-            <AppControls showDownloads />
+            <AppControls />
 
             <main className="pt-3">
                 <h1 className="h2 mb-4">{t("accountSettings")}</h1>

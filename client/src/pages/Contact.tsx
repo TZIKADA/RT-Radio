@@ -1,23 +1,11 @@
-import { Button } from "react-bootstrap";
-import { useNavigate } from "react-router";
 import AuthCard from "../components/AuthCard";
 import { useTranslation } from "../components/LanguageProvider";
 
 export default function Contact() {
     const { language, t } = useTranslation();
-    const navigate = useNavigate();
-
-    function returnToApp() {
-        const historyIndex = window.history.state?.idx;
-        if (typeof historyIndex === "number" && historyIndex > 0) {
-            navigate(-1);
-            return;
-        }
-        navigate("/");
-    }
 
     return (
-        <AuthCard title={t("contact")} width="fit-content" showContact={false}>
+        <AuthCard title={t("contact")} width="fit-content">
             <dl className="contact-details mb-0">
                 <dt>{t("phone")}</dt>
                 <dd>
@@ -59,16 +47,6 @@ export default function Contact() {
                     </span>
                 </dd>
             </dl>
-            <div className="text-end mt-3">
-                <Button
-                    variant="outline-secondary"
-                    className="d-inline-flex align-items-center gap-1"
-                    onClick={returnToApp}
-                >
-                    <i className="bi bi-arrow-left" aria-hidden="true" />
-                    {t("returnLabel")}
-                </Button>
-            </div>
         </AuthCard>
     );
 }

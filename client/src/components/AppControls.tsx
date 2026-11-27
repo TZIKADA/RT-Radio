@@ -1,22 +1,46 @@
 import { Dropdown } from "react-bootstrap";
 import { Link } from "react-router";
+import { useAuth } from "../scripts/useAuth";
 import { useTranslation, type Language } from "./LanguageProvider";
 import ThemeToggle from "./ToggleTheme";
 
 const languages: Language[] = ["en", "he", "ru", "ar"];
 
-export default function AppControls({
-    showContact = true,
-    showAccount = false,
-    showDownloads = false,
-}: {
-    showContact?: boolean;
-    showAccount?: boolean;
-    showDownloads?: boolean;
-} = {}) {
+export default function AppControls() {
+    const { session } = useAuth();
     const { language, languageNames, setLanguage, t } = useTranslation();
     const textDirection =
         language === "he" || language === "ar" ? "rtl" : "ltr";
+    const pageLinks = session
+        ? [
+              {
+                  path: "/",
+                  label: t("downloads"),
+                  icon: "bi-download",
+              },
+              {
+                  path: "/account",
+                  label: t("accountSettings"),
+                  icon: "bi-person-gear",
+              },
+          ]
+        : [
+              {
+                  path: "/login",
+                  label: t("login"),
+                  icon: "bi-box-arrow-in-right",
+              },
+              {
+                  path: "/sign-up",
+                  label: t("signUp"),
+                  icon: "bi-person-plus",
+              },
+              {
+                  path: "/forgot-password",
+                  label: t("forgotPassword"),
+                  icon: "bi-question-circle",
+              },
+          ];
 
     return (
         <div className="app-controls d-flex flex-wrap align-items-center gap-2">
@@ -29,6 +53,25 @@ export default function AppControls({
                     <i className="bi bi-list fs-4" aria-hidden="true" />
                 </Dropdown.Toggle>
                 <Dropdown.Menu align="end">
+                    {pageLinks.map(({ path, label, icon }) => (
+                        <Dropdown.Item
+                            key={path}
+                            as={Link}
+                            to={path}
+                            className="app-menu-item"
+                        >
+                            <i
+                                className={`bi ${icon} app-menu-item-icon`}
+                                aria-hidden="true"
+                            />
+                            <span
+                                className="app-menu-item-label"
+                                dir={textDirection}
+                            >
+                                {label}
+                            </span>
+                        </Dropdown.Item>
+                    ))}
                     <Dropdown.Item
                         as="a"
                         className="app-menu-item"
@@ -50,60 +93,22 @@ export default function AppControls({
                             {t("guide")}
                         </span>
                     </Dropdown.Item>
-                    {showAccount && (
-                        <Dropdown.Item
-                            as={Link}
-                            to="/account"
-                            className="app-menu-item"
+                    <Dropdown.Item
+                        as={Link}
+                        to="/contact"
+                        className="app-menu-item"
+                    >
+                        <i
+                            className="bi bi-person-lines-fill app-menu-item-icon"
+                            aria-hidden="true"
+                        />
+                        <span
+                            className="app-menu-item-label"
+                            dir={textDirection}
                         >
-                            <i
-                                className="bi bi-person-gear app-menu-item-icon"
-                                aria-hidden="true"
-                            />
-                            <span
-                                className="app-menu-item-label"
-                                dir={textDirection}
-                            >
-                                {t("accountSettings")}
-                            </span>
-                        </Dropdown.Item>
-                    )}
-                    {showDownloads && (
-                        <Dropdown.Item
-                            as={Link}
-                            to="/"
-                            className="app-menu-item"
-                        >
-                            <i
-                                className="bi bi-download app-menu-item-icon"
-                                aria-hidden="true"
-                            />
-                            <span
-                                className="app-menu-item-label"
-                                dir={textDirection}
-                            >
-                                {t("backToDownloads")}
-                            </span>
-                        </Dropdown.Item>
-                    )}
-                    {showContact && (
-                        <Dropdown.Item
-                            as={Link}
-                            to="/contact"
-                            className="app-menu-item"
-                        >
-                            <i
-                                className="bi bi-person-lines-fill app-menu-item-icon"
-                                aria-hidden="true"
-                            />
-                            <span
-                                className="app-menu-item-label"
-                                dir={textDirection}
-                            >
-                                {t("contact")}
-                            </span>
-                        </Dropdown.Item>
-                    )}
+                            {t("contact")}
+                        </span>
+                    </Dropdown.Item>
                 </Dropdown.Menu>
             </Dropdown>
             <Dropdown>
