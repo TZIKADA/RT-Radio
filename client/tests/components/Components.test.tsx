@@ -11,9 +11,11 @@ import ThemeToggle from "../../src/components/ToggleTheme";
 describe("AuthCard", () => {
     it("renders its title and child content", () => {
         const { container } = render(
-            <AuthCard title="Test card">
-                <p>Card content</p>
-            </AuthCard>,
+            <MemoryRouter>
+                <AuthCard title="Test card">
+                    <p>Card content</p>
+                </AuthCard>
+            </MemoryRouter>,
         );
 
         expect(
@@ -27,9 +29,11 @@ describe("AuthCard", () => {
 
     it("respects a custom width without overflowing its container", () => {
         const { container } = render(
-            <AuthCard title="Wide card" width="32rem">
-                Content
-            </AuthCard>,
+            <MemoryRouter>
+                <AuthCard title="Wide card" width="32rem">
+                    Content
+                </AuthCard>
+            </MemoryRouter>,
         );
 
         const card = container.querySelector<HTMLElement>(".card");
@@ -87,6 +91,7 @@ describe("ThemeToggle", () => {
             "data-bs-theme",
             "light",
         );
+        expect(localStorage.getItem("rt-radio-theme")).toBe("light");
         expect(button.querySelector(".bi-moon")).toBeInTheDocument();
     });
 
