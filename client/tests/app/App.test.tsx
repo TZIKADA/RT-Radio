@@ -3,14 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import type { Session } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthContext } from "../../src/scripts/auth-context";
+import { AuthContext } from "../../src/auth/auth-context";
 
 const supabaseMocks = vi.hoisted(() => ({
     from: vi.fn(),
     assignmentsSelect: vi.fn(),
     headersSelect: vi.fn(),
     headersIn: vi.fn(),
-    headersOrder: vi.fn(),
 }));
 
 vi.mock("../../src/lib/supabase", () => ({
@@ -28,7 +27,6 @@ describe("App routes", () => {
         const headersQuery = {
             select: supabaseMocks.headersSelect,
             in: supabaseMocks.headersIn,
-            order: supabaseMocks.headersOrder,
         };
         supabaseMocks.from.mockImplementation((table: string) =>
             table === "user_headers"
@@ -41,7 +39,6 @@ describe("App routes", () => {
         });
         supabaseMocks.headersSelect.mockReturnValue(headersQuery);
         supabaseMocks.headersIn.mockReturnValue(headersQuery);
-        supabaseMocks.headersOrder.mockResolvedValue({ data: [], error: null });
     });
 
     function renderAt(
