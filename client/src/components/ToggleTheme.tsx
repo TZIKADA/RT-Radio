@@ -37,6 +37,7 @@ export default function ThemeToggle() {
     return (
         <Button
             variant="outline-secondary"
+            className="app-control-button"
             aria-label={t(theme === "dark" ? "switchToLight" : "switchToDark")}
             onClick={toggle}
         >

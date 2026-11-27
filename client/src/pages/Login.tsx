@@ -47,7 +47,7 @@ export default function Login() {
     }
 
     return (
-        <AuthCard title="RT-Radio">
+        <AuthCard title="Login">
             <Form onSubmit={handleSubmit}>
                 {error && <AdminErrorAlert message={error} />}
 
@@ -55,7 +55,7 @@ export default function Login() {
                     <Form.Label>{t("email")}</Form.Label>
                     <Form.Control
                         type="email"
-                        placeholder="yourmail@example.com"
+                        placeholder="email@example.com"
                         autoComplete="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
