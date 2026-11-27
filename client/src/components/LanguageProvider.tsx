@@ -369,7 +369,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         function followSystemLanguage() {
-            if (localStorage.getItem(LANGUAGE_STORAGE_KEY) === null) {
+            if (!isLanguage(localStorage.getItem(LANGUAGE_STORAGE_KEY))) {
                 setLanguageState(getSystemLanguage());
             }
         }
