@@ -85,12 +85,7 @@ export default function Home() {
                 <Link to="/" className="text-decoration-none text-body">
                     <span className="h3 mb-0">RT-Radio</span>
                 </Link>
-                <div className="d-flex flex-wrap align-items-center gap-2">
-                    <Link to="/account" className="btn btn-outline-secondary">
-                        {t("accountSettings")}
-                    </Link>
-                    <AppControls />
-                </div>
+                <AppControls showAccount />
             </header>
 
             <main>
