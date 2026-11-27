@@ -7,7 +7,7 @@ export type GitHubReleaseAsset = {
 
 export type GitHubRelease = {
     title: string;
-    notes: string | null;
+    description: string | null;
     tag: string;
     publishedAt: string | null;
     zipballUrl: string;
@@ -19,6 +19,16 @@ const GITHUB_DOWNLOAD_HOSTS = new Set([
     "github.com",
     "codeload.github.com",
 ]);
+
+const RELEASE_METADATA_MARKER = /\r?\n\r?\n---\r?\n\r?\nCommit: [0-9a-f]{40}\b/i;
+
+function extractReleaseDescription(body: string | null): string | null {
+    if (body === null) return null;
+
+    const marker = RELEASE_METADATA_MARKER.exec(body);
+    const description = (marker ? body.slice(0, marker.index) : body).trim();
+    return description.length > 0 ? description : null;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null;
@@ -102,12 +112,13 @@ export async function fetchGitHubRelease(
     }
 
     const tag = data.tag_name;
+    const description = extractReleaseDescription(data.body);
     return {
         title:
             typeof data.name === "string" && data.name.trim()
                 ? data.name
                 : tag,
-        notes: data.body,
+        description,
         tag,
         publishedAt: data.published_at,
         zipballUrl: parseGitHubDownloadUrl(data.zipball_url, "source archive URL"),
