@@ -61,7 +61,7 @@ describe("App routes", () => {
     }
 
     it.each([
-        ["/login", "RT-Radio"],
+        ["/login", "Login"],
         ["/sign-up", "Sign Up"],
         ["/forgot-password", "Forgot password"],
         ["/reset-password", "This reset link is invalid or expired. Request a new one."],
@@ -83,7 +83,7 @@ describe("App routes", () => {
         renderAt("/");
 
         expect(
-            await screen.findByRole("heading", { name: "RT-Radio" }),
+            await screen.findByRole("heading", { name: "Login" }),
         ).toBeInTheDocument();
     });
 
@@ -94,6 +94,9 @@ describe("App routes", () => {
         expect(
             await screen.findByRole("heading", { name: "Your headers" }),
         ).toBeInTheDocument();
+        expect(
+            screen.queryByRole("link", { name: "RT-Radio" }),
+        ).not.toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: "Menu" }));
         expect(
             screen.getByRole("link", { name: "Account settings" }),
@@ -110,6 +113,9 @@ describe("App routes", () => {
         expect(
             screen.getByRole("heading", { name: "Account settings" }),
         ).toBeInTheDocument();
+        expect(
+            screen.queryByRole("link", { name: "RT-Radio" }),
+        ).not.toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: "Menu" }));
         expect(
             screen.getByRole("link", { name: "Back to downloads" }),
@@ -199,7 +205,7 @@ describe("App routes", () => {
         );
 
         expect(
-            await screen.findByRole("heading", { name: "RT-Radio" }),
+            await screen.findByRole("heading", { name: "Login" }),
         ).toBeInTheDocument();
     });
 

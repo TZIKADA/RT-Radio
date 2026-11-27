@@ -1,6 +1,5 @@
 import { useState, type SubmitEvent } from "react";
 import { Alert, Button, Card, Container, Form } from "react-bootstrap";
-import { Link } from "react-router";
 import { MIN_PASSWORD_LENGTH } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../scripts/useAuth";
@@ -84,14 +83,9 @@ export default function Account() {
 
     return (
         <Container className="py-5" style={{ maxWidth: "48rem" }}>
-            <header className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-5">
-                <Link to="/" className="text-decoration-none text-dark">
-                    <span className="h3 mb-0">RT-Radio</span>
-                </Link>
-                <AppControls showDownloads />
-            </header>
+            <AppControls showDownloads />
 
-            <main>
+            <main className="pt-3">
                 <h1 className="h2 mb-4">{t("accountSettings")}</h1>
 
                 <Card className="shadow-sm mb-4">
