@@ -7,6 +7,7 @@ import { supabase } from "../lib/supabase";
 
 import { MIN_PASSWORD_LENGTH } from "../lib/auth";
 import { useTranslation } from "../components/LanguageProvider";
+import { logAppError, withAdminContact } from "../lib/errors";
 
 export default function ResetPassword() {
     // Opening the emailed link makes supabase-js create a temporary session,
@@ -49,16 +50,23 @@ export default function ResetPassword() {
         }
 
         setBusy(true);
-        const { error: updateError } = await supabase.auth.updateUser({
-            password,
-        });
+        try {
+            const { error: updateError } = await supabase.auth.updateUser({
+                password,
+            });
 
-        if (updateError) {
-            setError(updateError.message);
+            if (updateError) {
+                logAppError("Resetting password failed", updateError);
+                setError(withAdminContact(t("requestFailed")));
+                return;
+            }
+            navigate("/", { replace: true }); // already signed in by the reset link
+        } catch (updateError) {
+            logAppError("Resetting password failed", updateError);
+            setError(withAdminContact(t("requestFailed")));
+        } finally {
             setBusy(false);
-            return;
         }
-        navigate("/", { replace: true }); // already signed in by the reset link
     }
 
     return (

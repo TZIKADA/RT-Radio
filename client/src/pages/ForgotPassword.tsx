@@ -4,6 +4,7 @@ import { Alert, Button, Form } from "react-bootstrap";
 import AuthCard from "../components/AuthCard";
 import { supabase } from "../lib/supabase";
 import { useTranslation } from "../components/LanguageProvider";
+import { logAppError, withAdminContact } from "../lib/errors";
 
 export default function ForgotPassword() {
     const { t } = useTranslation();
@@ -17,17 +18,24 @@ export default function ForgotPassword() {
         setBusy(true);
         setError(null);
 
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-            email,
-            { redirectTo: `${window.location.origin}/reset-password` },
-        );
+        try {
+            const { error: resetError } =
+                await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/reset-password`,
+                });
 
-        setBusy(false);
-        if (resetError) {
-            setError(resetError.message);
-            return;
+            if (resetError) {
+                logAppError("Requesting password reset failed", resetError);
+                setError(withAdminContact(t("requestFailed")));
+                return;
+            }
+            setSent(true);
+        } catch (resetError) {
+            logAppError("Requesting password reset failed", resetError);
+            setError(withAdminContact(t("requestFailed")));
+        } finally {
+            setBusy(false);
         }
-        setSent(true);
     }
 
     return (

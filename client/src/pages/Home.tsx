@@ -3,6 +3,7 @@ import { Alert, Button, Card, Container, Row, Col } from "react-bootstrap";
 import { Link } from "react-router";
 import AppControls from "../components/AppControls";
 import { useTranslation } from "../components/LanguageProvider";
+import { logAppError, withAdminContact } from "../lib/errors";
 import { supabase } from "../lib/supabase";
 
 type HeaderRecord = {
@@ -11,19 +12,6 @@ type HeaderRecord = {
     description: string | null;
     storage_path: string;
 };
-
-function getErrorMessage(error: unknown, fallback: string) {
-    if (error instanceof Error) return error.message;
-    if (
-        typeof error === "object" &&
-        error !== null &&
-        "message" in error &&
-        typeof error.message === "string"
-    ) {
-        return error.message;
-    }
-    return fallback;
-}
 
 export default function Home() {
     const { t } = useTranslation();
@@ -61,20 +49,15 @@ export default function Home() {
                 if (headersError) throw headersError;
                 setHeaders(data ?? []);
             } catch (loadError) {
-                console.error(loadError);
-                setError(
-                    getErrorMessage(
-                        loadError,
-                        "Could not read your header assignments. Check the user_headers table and its SELECT policy.",
-                    ),
-                );
+                logAppError("Loading assigned header files failed", loadError);
+                setError(withAdminContact(t("headersLoadFailed")));
             } finally {
                 setLoading(false);
             }
         }
 
         void loadHeaders();
-    }, []);
+    }, [t]);
 
     async function downloadHeader(header: HeaderRecord) {
         setDownloadingId(header.id);
@@ -88,16 +71,8 @@ export default function Home() {
             if (signedUrlError) throw signedUrlError;
             window.location.assign(data.signedUrl);
         } catch (downloadError) {
-            console.error(downloadError);
-            setDownloadError(
-                getErrorMessage(
-                    downloadError,
-                    t("failedToPrepareDownload").replace(
-                        "{name}",
-                        header.name,
-                    ),
-                ),
-            );
+            logAppError(`Preparing download for header ${header.id} failed`, downloadError);
+            setDownloadError(withAdminContact(t("downloadFailed")));
         } finally {
             setDownloadingId(null);
         }
@@ -126,8 +101,8 @@ export default function Home() {
                 </div>
 
                 {error && (
-                    <Alert variant="danger">
-                        {t("failedToLoadHeaders").replace("{error}", error)}
+                    <Alert variant="danger" role="alert">
+                        {error}
                     </Alert>
                 )}
                 {downloadError && (

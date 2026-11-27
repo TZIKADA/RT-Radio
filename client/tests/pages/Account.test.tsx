@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Session } from "@supabase/supabase-js";
 import { MemoryRouter } from "react-router";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Account from "../../src/pages/Account";
 import { AuthContext } from "../../src/scripts/auth-context";
 
@@ -15,6 +15,10 @@ vi.mock("../../src/lib/supabase", () => ({
 }));
 
 describe("Account", () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     beforeEach(() => {
         supabaseMocks.updateUser.mockResolvedValue({ error: null });
     });
@@ -25,7 +29,9 @@ describe("Account", () => {
         } as Session;
 
         return render(
-            <AuthContext.Provider value={{ session, loading: false }}>
+            <AuthContext.Provider
+                value={{ session, loading: false, authError: false }}
+            >
                 <MemoryRouter>
                     <Account />
                 </MemoryRouter>
@@ -87,8 +93,12 @@ describe("Account", () => {
 
     it("displays Supabase errors when credential updates fail", async () => {
         const user = userEvent.setup();
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        const updateError = new Error("Email update failed");
         supabaseMocks.updateUser.mockResolvedValue({
-            error: new Error("Email update failed"),
+            error: updateError,
         });
         renderAccount();
 
@@ -98,7 +108,14 @@ describe("Account", () => {
         await user.click(screen.getByRole("button", { name: "Update email" }));
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
+            "Please try again. If it still fails, notify the site administrator:",
+        );
+        expect(await screen.findByRole("alert")).not.toHaveTextContent(
             "Email update failed",
+        );
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Updating account email failed",
+            updateError,
         );
     });
 });

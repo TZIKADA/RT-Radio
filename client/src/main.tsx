@@ -1,22 +1,30 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
+import { ADMIN_CONTACT_TEMPLATE, logAppError } from "./lib/errors";
 
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./styles/main.scss";
 
 const rootElement = document.getElementById("root");
-if (!rootElement) throw new Error("Missing application root element.");
+if (!rootElement) {
+    const error = new Error("Missing application root element.");
+    logAppError("Application root element is missing", error);
+    throw error;
+}
 
 const root = createRoot(rootElement);
 
-function showStartupError(title: string, message: string) {
+function showStartupError() {
     root.render(
         <StrictMode>
             <main className="container py-5">
                 <div className="alert alert-warning" role="alert">
-                    <h1 className="h3">{title}</h1>
-                    <p>{message}</p>
+                    <h1 className="h3">Unable to start RT-Radio</h1>
+                    <p>
+                        The service is unavailable. Please notify the site
+                        administrator: {ADMIN_CONTACT_TEMPLATE}.
+                    </p>
                 </div>
             </main>
         </StrictMode>,
@@ -28,10 +36,11 @@ const supabasePublishableKey =
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
 
 if (!supabaseUrl || !supabasePublishableKey) {
-    showStartupError(
-        "RT-Radio setup required",
-        "Copy .env.example to .env.local, set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your Supabase project values, then restart the dev server.",
-    );
+    logAppError("Missing Supabase configuration", {
+        supabaseUrlConfigured: Boolean(supabaseUrl),
+        supabasePublishableKeyConfigured: Boolean(supabasePublishableKey),
+    });
+    showStartupError();
 } else {
     void Promise.all([import("./App"), import("./components/AuthProvider")])
         .then(([{ default: App }, { default: AuthProvider }]) => {
@@ -46,10 +55,7 @@ if (!supabaseUrl || !supabasePublishableKey) {
             );
         })
         .catch((error: unknown) => {
-            console.error("RT-Radio failed to start.", error);
-            showStartupError(
-                "RT-Radio failed to start",
-                error instanceof Error ? error.message : "Unknown startup error.",
-            );
+            logAppError("Application failed to start", error);
+            showStartupError();
         });
 }

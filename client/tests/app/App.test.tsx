@@ -44,9 +44,15 @@ describe("App routes", () => {
         supabaseMocks.headersOrder.mockResolvedValue({ data: [], error: null });
     });
 
-    function renderAt(path: string, session: Session | null = null) {
+    function renderAt(
+        path: string,
+        session: Session | null = null,
+        authError = false,
+    ) {
         return render(
-            <AuthContext.Provider value={{ session, loading: false }}>
+            <AuthContext.Provider
+                value={{ session, loading: false, authError }}
+            >
                 <MemoryRouter initialEntries={[path]}>
                     <App />
                 </MemoryRouter>
@@ -58,12 +64,14 @@ describe("App routes", () => {
         ["/login", "RT-Radio"],
         ["/sign-up", "Sign Up"],
         ["/forgot-password", "Forgot password"],
-        ["/reset-password", "This reset link is invalid or has expired."],
+        ["/reset-password", "This reset link is invalid or expired. Request a new one."],
     ])("renders the route %s", (path, expectedText) => {
         renderAt(path);
 
         if (path === "/reset-password") {
-            expect(screen.getByRole("alert")).toHaveTextContent(expectedText);
+            expect(screen.getByRole("alert")).toHaveTextContent(
+                "This reset link is invalid or expired. Request a new one.",
+            );
         } else {
             expect(
                 screen.getByRole("heading", { name: expectedText }),
@@ -96,6 +104,14 @@ describe("App routes", () => {
         expect(
             screen.getByRole("heading", { name: "Account settings" }),
         ).toBeInTheDocument();
+    });
+
+    it("shows a contact-admin message when session loading fails", () => {
+        renderAt("/login", null, true);
+
+        expect(screen.getByRole("alert")).toHaveTextContent(
+            "notify the site administrator: [Add administrator contact information]",
+        );
     });
 
     it("switches translations and document direction for Hebrew", async () => {
