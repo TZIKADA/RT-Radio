@@ -54,6 +54,18 @@ describe("ThemeToggle", () => {
         vi.unstubAllGlobals();
     });
 
+    it("defaults to light when matchMedia is unavailable", () => {
+        document.documentElement.setAttribute("data-bs-theme", "custom");
+        vi.stubGlobal("matchMedia", undefined);
+
+        render(<ThemeToggle />);
+
+        expect(
+            screen.getByRole("button", { name: "Switch to dark mode" }),
+        ).toBeInTheDocument();
+        vi.unstubAllGlobals();
+    });
+
     it("uses the same default button size as the page navigation", () => {
         render(<ThemeToggle />);
 
