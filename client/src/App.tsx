@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router";
-import { Alert, Container } from "react-bootstrap";
+import { Container } from "react-bootstrap";
 import RequireAuth from "./components/RequireAuth";
+import AdminErrorAlert from "./components/AdminErrorAlert";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -9,7 +10,6 @@ import Home from "./pages/Home";
 import Account from "./pages/Account";
 import { LanguageProvider, useTranslation } from "./components/LanguageProvider";
 import { useAuth } from "./scripts/useAuth";
-import { withAdminContact } from "./lib/errors";
 
 function AppRoutes() {
     const { authError } = useAuth();
@@ -18,9 +18,7 @@ function AppRoutes() {
     if (authError) {
         return (
             <Container className="py-5">
-                <Alert variant="danger" role="alert">
-                    {withAdminContact(t("requestFailed"))}
-                </Alert>
+                <AdminErrorAlert message={t("requestFailed")} />
             </Container>
         );
     }

@@ -108,8 +108,11 @@ describe("Account", () => {
         await user.click(screen.getByRole("button", { name: "Update email" }));
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
-            "Please try again. If it still fails, notify the site administrator:",
+            "We couldn't complete that request. Please try again.",
         );
+        expect(
+            screen.getByRole("link", { name: "contact the site administrator." }),
+        ).toHaveAttribute("href", "/contact.html");
         expect(await screen.findByRole("alert")).not.toHaveTextContent(
             "Email update failed",
         );

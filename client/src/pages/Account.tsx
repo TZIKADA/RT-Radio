@@ -5,8 +5,9 @@ import { MIN_PASSWORD_LENGTH } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../scripts/useAuth";
 import AppControls from "../components/AppControls";
+import AdminErrorAlert from "../components/AdminErrorAlert";
 import { useTranslation } from "../components/LanguageProvider";
-import { logAppError, withAdminContact } from "../lib/errors";
+import { logAppError } from "../lib/errors";
 
 export default function Account() {
     const { session } = useAuth();
@@ -16,6 +17,8 @@ export default function Account() {
     const [emailMessage, setEmailMessage] = useState<string | null>(null);
     const [emailBusy, setEmailBusy] = useState(false);
     const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [passwordErrorNeedsSupport, setPasswordErrorNeedsSupport] =
+        useState(false);
     const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
     const [passwordBusy, setPasswordBusy] = useState(false);
 
@@ -42,7 +45,7 @@ export default function Account() {
             );
         } catch (updateError) {
             logAppError("Updating account email failed", updateError);
-            setEmailError(withAdminContact(t("requestFailed")));
+            setEmailError(t("requestFailed"));
         } finally {
             setEmailBusy(false);
         }
@@ -51,6 +54,7 @@ export default function Account() {
     async function updatePassword(event: SubmitEvent<HTMLFormElement>) {
         event.preventDefault();
         setPasswordError(null);
+        setPasswordErrorNeedsSupport(false);
         setPasswordMessage(null);
 
         const form = event.currentTarget;
@@ -71,7 +75,8 @@ export default function Account() {
             setPasswordMessage(t("passwordUpdated"));
         } catch (updateError) {
             logAppError("Updating account password failed", updateError);
-            setPasswordError(withAdminContact(t("requestFailed")));
+            setPasswordErrorNeedsSupport(true);
+            setPasswordError(t("requestFailed"));
         } finally {
             setPasswordBusy(false);
         }
@@ -104,9 +109,7 @@ export default function Account() {
                         </p>
                         <Form onSubmit={updateEmail}>
                             {emailError && (
-                                <Alert variant="danger" role="alert">
-                                    {emailError}
-                                </Alert>
+                                <AdminErrorAlert message={emailError} />
                             )}
                             {emailMessage && (
                                 <Alert variant="success" role="status">
@@ -141,9 +144,13 @@ export default function Account() {
                         </Card.Title>
                         <Form onSubmit={updatePassword}>
                             {passwordError && (
-                                <Alert variant="danger" role="alert">
-                                    {passwordError}
-                                </Alert>
+                                passwordErrorNeedsSupport ? (
+                                    <AdminErrorAlert message={passwordError} />
+                                ) : (
+                                    <Alert variant="danger" role="alert">
+                                        {passwordError}
+                                    </Alert>
+                                )
                             )}
                             {passwordMessage && (
                                 <Alert variant="success" role="status">

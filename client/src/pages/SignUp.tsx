@@ -6,12 +6,14 @@ import { useAuth } from "../scripts/useAuth";
 import { supabase } from "../lib/supabase";
 import { MIN_PASSWORD_LENGTH } from "../lib/auth";
 import { useTranslation } from "../components/LanguageProvider";
-import { logAppError, withAdminContact } from "../lib/errors";
+import AdminErrorAlert from "../components/AdminErrorAlert";
+import { logAppError } from "../lib/errors";
 
 export default function SignUp() {
     const { session, loading } = useAuth();
     const { t } = useTranslation();
     const [error, setError] = useState<string | null>(null);
+    const [errorNeedsSupport, setErrorNeedsSupport] = useState(false);
     const [busy, setBusy] = useState(false);
     const [confirmEmail, setConfirmEmail] = useState<string | null>(null);
 
@@ -23,6 +25,7 @@ export default function SignUp() {
     async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
         e.preventDefault();
         setError(null);
+        setErrorNeedsSupport(false);
 
         const form = new FormData(e.currentTarget);
         const text = (key: string) => String(form.get(key) ?? "").trim();
@@ -53,7 +56,8 @@ export default function SignUp() {
 
             if (signUpError) {
                 logAppError("Creating account failed", signUpError);
-                setError(withAdminContact(t("requestFailed")));
+                setErrorNeedsSupport(true);
+                setError(t("requestFailed"));
                 return;
             }
 
@@ -72,7 +76,8 @@ export default function SignUp() {
             }
         } catch (signUpError) {
             logAppError("Creating account failed", signUpError);
-            setError(withAdminContact(t("requestFailed")));
+            setErrorNeedsSupport(true);
+            setError(t("requestFailed"));
         } finally {
             setBusy(false);
         }
@@ -102,7 +107,12 @@ export default function SignUp() {
     return (
         <AuthCard title={t("signUpTitle")} width="32rem">
             <Form onSubmit={handleSubmit}>
-                {error && <Alert variant="danger">{error}</Alert>}
+                {error &&
+                    (errorNeedsSupport ? (
+                        <AdminErrorAlert message={error} />
+                    ) : (
+                        <Alert variant="danger">{error}</Alert>
+                    ))}
 
                 <Form.Group className="mb-3" controlId="email">
                     <Form.Label>{t("emailAddressLabel")}</Form.Label>

@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
-import { ADMIN_CONTACT_TEMPLATE, logAppError } from "./lib/errors";
+import { logAppError } from "./lib/errors";
 
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./styles/main.scss";
@@ -22,9 +22,10 @@ function showStartupError() {
                 <div className="alert alert-warning" role="alert">
                     <h1 className="h3">Unable to start RT-Radio</h1>
                     <p>
-                        The service is unavailable. Please notify the site
-                        administrator: {ADMIN_CONTACT_TEMPLATE}.
+                        The service is unavailable. Please contact the site
+                        administrator.
                     </p>
+                    <a href="/contact.html">Contact information</a>
                 </div>
             </main>
         </StrictMode>,

@@ -9,8 +9,8 @@ The client-side of the server where users can get their personalized header for 
    your Supabase project.
    `VITE_DOCUMENTATION_URL` can point to your instructions page; it defaults
    to the local `/docs/index.html` placeholder.
-   Replace `ADMIN_CONTACT_TEMPLATE` in `src/lib/errors.ts` with your contact
-   information before deployment.
+   The contact details and localized public contact page are in
+   `public/contact.html`.
 3. Run `npm install`.
 4. Run `npm run dev`.
 

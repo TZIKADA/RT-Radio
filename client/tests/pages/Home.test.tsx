@@ -148,7 +148,7 @@ describe("Home", () => {
         renderHome();
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
-            "We couldn't load your files. Please notify the site administrator:",
+            "We couldn't load your files. If the issue persists, contact the site administrator.",
         );
         expect(await screen.findByRole("alert")).not.toHaveTextContent(
             "Database unavailable",
@@ -194,7 +194,7 @@ describe("Home", () => {
         );
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
-            "We couldn't prepare this download. Please try again or notify the site administrator:",
+            "We couldn't prepare this download. If the issue persists, contact the site administrator.",
         );
         expect(await screen.findByRole("alert")).not.toHaveTextContent(
             "Storage unavailable",

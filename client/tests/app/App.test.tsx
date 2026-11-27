@@ -110,8 +110,11 @@ describe("App routes", () => {
         renderAt("/login", null, true);
 
         expect(screen.getByRole("alert")).toHaveTextContent(
-            "notify the site administrator: [Add administrator contact information]",
+            "We couldn't complete that request.",
         );
+        expect(
+            screen.getByRole("link", { name: "contact the site administrator." }),
+        ).toHaveAttribute("href", "/contact.html");
     });
 
     it("switches translations and document direction for Hebrew", async () => {

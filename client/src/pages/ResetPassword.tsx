@@ -7,7 +7,8 @@ import { supabase } from "../lib/supabase";
 
 import { MIN_PASSWORD_LENGTH } from "../lib/auth";
 import { useTranslation } from "../components/LanguageProvider";
-import { logAppError, withAdminContact } from "../lib/errors";
+import AdminErrorAlert from "../components/AdminErrorAlert";
+import { logAppError } from "../lib/errors";
 
 export default function ResetPassword() {
     // Opening the emailed link makes supabase-js create a temporary session,
@@ -18,6 +19,7 @@ export default function ResetPassword() {
     const [password, setPassword] = useState("");
     const [confirm, setConfirm] = useState("");
     const [error, setError] = useState<string | null>(null);
+    const [errorNeedsSupport, setErrorNeedsSupport] = useState(false);
     const [busy, setBusy] = useState(false);
 
     if (loading) return null;
@@ -43,6 +45,7 @@ export default function ResetPassword() {
     async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
         e.preventDefault();
         setError(null);
+        setErrorNeedsSupport(false);
 
         if (password !== confirm) {
             setError(t("passwordsDoNotMatch"));
@@ -57,13 +60,15 @@ export default function ResetPassword() {
 
             if (updateError) {
                 logAppError("Resetting password failed", updateError);
-                setError(withAdminContact(t("requestFailed")));
+                setErrorNeedsSupport(true);
+                setError(t("requestFailed"));
                 return;
             }
             navigate("/", { replace: true }); // already signed in by the reset link
         } catch (updateError) {
             logAppError("Resetting password failed", updateError);
-            setError(withAdminContact(t("requestFailed")));
+            setErrorNeedsSupport(true);
+            setError(t("requestFailed"));
         } finally {
             setBusy(false);
         }
@@ -72,7 +77,12 @@ export default function ResetPassword() {
     return (
         <AuthCard title={t("resetPassword")}>
             <Form onSubmit={handleSubmit}>
-                {error && <Alert variant="danger">{error}</Alert>}
+                {error &&
+                    (errorNeedsSupport ? (
+                        <AdminErrorAlert message={error} />
+                    ) : (
+                        <Alert variant="danger">{error}</Alert>
+                    ))}
 
                 <Form.Group className="mb-3" controlId="password">
                     <Form.Label>{t("newPassword")}</Form.Label>
