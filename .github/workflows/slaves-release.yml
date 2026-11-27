@@ -4,11 +4,6 @@ on:
   push:
     branches: [main]
     paths: ["hardware/slaves/**"]
-  workflow_dispatch:
-    inputs:
-      folder:
-        description: "Slave folder to release (e.g. default)"
-        required: true
 
 permissions:
   contents: write
@@ -29,21 +24,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BEFORE: ${{ github.event.before }}
-          FOLDER_INPUT: ${{ inputs.folder }}
         run: |
           set -euo pipefail
 
-          # Which folders changed in this push (or the one chosen manually)?
-          if [[ -n "$FOLDER_INPUT" ]]; then
-            folders="$FOLDER_INPUT"
-          else
-            base="$BEFORE"
-            if [[ "$base" =~ ^0+$ ]]; then
-              base="$(git hash-object -t tree /dev/null)"   # new branch: diff against empty tree
-            fi
-            folders="$(git diff --name-only "$base" "$GITHUB_SHA" -- hardware/slaves \
-              | awk -F/ 'NF >= 4 {print $3}' | sort -u)"
+          # Which slave folders changed in this push?
+          base="$BEFORE"
+          if [[ "$base" =~ ^0+$ ]]; then
+            base="$(git hash-object -t tree /dev/null)"   # new branch: diff against empty tree
           fi
+          folders="$(git diff --name-only "$base" "$GITHUB_SHA" -- hardware/slaves \
+            | awk -F/ 'NF >= 4 {print $3}' | sort -u)"
 
           for folder in $folders; do
             [[ "$folder" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "::error::Bad folder name '$folder'"; exit 1; }
