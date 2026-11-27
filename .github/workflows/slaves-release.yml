@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "hardware/slaves/**"
+  workflow_dispatch:
 
 permissions:
   contents: write
