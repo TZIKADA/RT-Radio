@@ -8,3 +8,34 @@
 [dir="rtl"] .text-end {
     text-align: end !important;
 }
+
+.contact-name {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5em;
+    white-space: nowrap;
+    unicode-bidi: isolate;
+}
+
+.contact-details {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    width: 100%;
+    gap: 0.75rem 1rem;
+}
+
+.contact-details dt {
+    font-weight: 600;
+    text-align: start;
+}
+
+.contact-details dd {
+    min-width: 0;
+    margin: 0;
+    text-align: end;
+}
+
+.contact-details a[dir="ltr"] {
+    overflow-wrap: anywhere;
+}
+
