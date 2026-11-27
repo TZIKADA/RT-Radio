@@ -284,7 +284,7 @@ describe("SignUp", () => {
         );
         expect(
             screen.getByRole("link", { name: "contact the site administrator." }),
-        ).toHaveAttribute("href", "/contact.html");
+        ).toHaveAttribute("href", "/contact");
         expect(await screen.findByRole("alert")).not.toHaveTextContent(
             "Sign-up unavailable",
         );
@@ -363,7 +363,7 @@ describe("ForgotPassword", () => {
         );
         expect(
             screen.getByRole("link", { name: "contact the site administrator." }),
-        ).toHaveAttribute("href", "/contact.html");
+        ).toHaveAttribute("href", "/contact");
         expect(consoleError).toHaveBeenCalledWith(
             "[RT-Radio] Requesting password reset failed",
             { message: "Email service unavailable" },
@@ -437,7 +437,7 @@ describe("ResetPassword", () => {
         );
         expect(
             screen.getByRole("link", { name: "contact the site administrator." }),
-        ).toHaveAttribute("href", "/contact.html");
+        ).toHaveAttribute("href", "/contact");
         expect(consoleError).toHaveBeenCalledWith(
             "[RT-Radio] Resetting password failed",
             { message: "Password update failed" },

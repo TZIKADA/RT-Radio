@@ -28,6 +28,7 @@ export default function ThemeToggle() {
 
     function toggle() {
         const next = theme === "dark" ? "light" : "dark";
+        localStorage.setItem("rt-radio-theme", next);
         document.documentElement.setAttribute("data-bs-theme", next);
         document.documentElement.dataset.themeOverride = "true";
         setTheme(next);

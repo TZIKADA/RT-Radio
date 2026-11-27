@@ -114,7 +114,40 @@ describe("App routes", () => {
         );
         expect(
             screen.getByRole("link", { name: "contact the site administrator." }),
-        ).toHaveAttribute("href", "/contact.html");
+        ).toHaveAttribute("href", "/contact");
+    });
+
+    it("allows access to contact information when session loading fails", async () => {
+        const user = userEvent.setup();
+        renderAt("/login", null, true);
+
+        await user.click(
+            screen.getByRole("link", {
+                name: "contact the site administrator.",
+            }),
+        );
+
+        expect(
+            screen.getByRole("heading", { name: "Contact" }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole("link", { name: "0534201812" }),
+        ).toHaveAttribute("href", "tel:0534201812");
+    });
+
+    it("keeps the Hebrew name visible and shows its Latin copy outside Hebrew", () => {
+        localStorage.setItem("rt-radio-language", "en");
+        const englishContact = renderAt("/contact");
+
+        expect(screen.getByText("Dan Krumkop")).toBeInTheDocument();
+        expect(screen.getByText("דן קרומקופ")).toBeInTheDocument();
+
+        englishContact.unmount();
+        localStorage.setItem("rt-radio-language", "he");
+        renderAt("/contact");
+
+        expect(screen.getByText("דן קרומקופ")).toBeInTheDocument();
+        expect(screen.queryByText("Dan Krumkop")).not.toBeInTheDocument();
     });
 
     it("switches translations and document direction for Hebrew", async () => {

@@ -9,6 +9,7 @@
             const themePreference = window.matchMedia(
                 "(prefers-color-scheme: dark)",
             );
+            const savedTheme = localStorage.getItem("rt-radio-theme");
             const applySystemTheme = () => {
                 if (document.documentElement.dataset.themeOverride !== "true") {
                     document.documentElement.setAttribute(
@@ -18,7 +19,15 @@
                     window.dispatchEvent(new Event("system-theme-change"));
                 }
             };
-            applySystemTheme();
+            if (savedTheme === "light" || savedTheme === "dark") {
+                document.documentElement.setAttribute(
+                    "data-bs-theme",
+                    savedTheme,
+                );
+                document.documentElement.dataset.themeOverride = "true";
+            } else {
+                applySystemTheme();
+            }
             themePreference.addEventListener("change", applySystemTheme);
         </script>
     </head>

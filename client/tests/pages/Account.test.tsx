@@ -112,7 +112,7 @@ describe("Account", () => {
         );
         expect(
             screen.getByRole("link", { name: "contact the site administrator." }),
-        ).toHaveAttribute("href", "/contact.html");
+        ).toHaveAttribute("href", "/contact");
         expect(await screen.findByRole("alert")).not.toHaveTextContent(
             "Email update failed",
         );
