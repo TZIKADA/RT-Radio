@@ -292,6 +292,38 @@ describe("SignUp", () => {
         expect(screen.getByRole("button", { name: "Sign Up" })).toBeEnabled();
     });
 
+    it("reports rejected sign-up requests without exposing details", async () => {
+        const user = userEvent.setup();
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        const requestError = new Error("Network timeout");
+        supabaseMocks.signUp.mockRejectedValue(requestError);
+        renderWithAuth(<SignUp />);
+
+        await user.type(
+            screen.getByLabelText("Email Address"),
+            "new@example.com",
+        );
+        await user.type(screen.getByLabelText("Password"), "password123");
+        await user.type(
+            screen.getByLabelText("Confirm password"),
+            "password123",
+        );
+        await user.click(screen.getByRole("button", { name: "Sign Up" }));
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't complete that request. Please try again.",
+        );
+        expect(await screen.findByRole("alert")).not.toHaveTextContent(
+            "Network timeout",
+        );
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Creating account failed",
+            requestError,
+        );
+    });
+
     it("redirects when sign-up creates an active session", async () => {
         const user = userEvent.setup();
         supabaseMocks.signUp.mockResolvedValue({
@@ -364,6 +396,29 @@ describe("ForgotPassword", () => {
         expect(consoleError).toHaveBeenCalledWith(
             "[RT-Radio] Requesting password reset failed",
             { message: "Email service unavailable" },
+        );
+    });
+
+    it("handles a rejected password-reset request", async () => {
+        const user = userEvent.setup();
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        const requestError = new Error("Network timeout");
+        supabaseMocks.resetPasswordForEmail.mockRejectedValue(requestError);
+        renderWithAuth(<ForgotPassword />);
+
+        await user.type(screen.getByLabelText("Email"), "user@example.com");
+        await user.click(
+            screen.getByRole("button", { name: "Send reset link" }),
+        );
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't complete that request. Please try again.",
+        );
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Requesting password reset failed",
+            requestError,
         );
     });
 });
@@ -442,6 +497,36 @@ describe("ResetPassword", () => {
         expect(
             screen.getByRole("button", { name: "Set new password" }),
         ).toBeEnabled();
+    });
+
+    it("handles a rejected password update request", async () => {
+        const user = userEvent.setup();
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        const requestError = new Error("Network timeout");
+        supabaseMocks.updateUser.mockRejectedValue(requestError);
+        renderWithAuth(<ResetPassword />, {} as Session, "/reset-password");
+
+        await user.type(screen.getByLabelText("New password"), "newpassword");
+        await user.type(
+            screen.getByLabelText("Confirm new password"),
+            "newpassword",
+        );
+        await user.click(
+            screen.getByRole("button", { name: "Set new password" }),
+        );
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't complete that request. Please try again.",
+        );
+        expect(
+            screen.getByRole("link", { name: "contact the site administrator." }),
+        ).toHaveAttribute("href", "/contact");
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Resetting password failed",
+            requestError,
+        );
     });
 
     it("waits for auth loading before showing reset-link status", () => {

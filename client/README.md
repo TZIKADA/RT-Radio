@@ -29,7 +29,7 @@ grouped into `app/`, `auth/`, `components/`, `pages/`, and `lib/`.
     - Optionally provide a phone number for account metadata.
 3. **Sign in**
     - The home page reads assigned header IDs from `user_headers` and their
-      latest-release API URLs from `headers.github_api`.
+      GitHub release API URLs from `headers.github_api`.
     - Cards show the GitHub release title. The info dialog includes its notes,
       tag, release date, and uploaded assets; the card download link downloads
       the release source ZIP.
@@ -43,5 +43,11 @@ grouped into `app/`, `auth/`, `components/`, `pages/`, and `lib/`.
 
 The app relies on row-level security policies for `user_headers` and `headers`
 to restrict the list of assigned headers and their GitHub API URLs.
+<<<<<<< HEAD
 Each `headers.github_api` value should point to the public latest-release
 endpoint, such as `https://api.github.com/repos/OWNER/REPO/releases/latest`.
+=======
+Each `headers.github_api` value can point to the public latest-release endpoint
+or a specific tag endpoint, such as
+`https://api.github.com/repos/OWNER/REPO/releases/tags/FOLDER-v1.2.3`.
+>>>>>>> origin/main

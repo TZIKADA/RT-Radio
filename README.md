@@ -17,3 +17,14 @@ My project is intended as an alternative to the existing Link Layer protocols, o
 ## Auto Balancing
 
 To avoid overloading a single frequency, the protocol supports Auto Balancing by tracking timeouts. A device that has not heard the controller within a certain period of time returns to the unassociated state, and the controller, which tracks conversation times, will know which devices did not get a response in time and will associate them with the most available dedicated frequency.
+
+## Slave Releases
+
+The `Slave Header Release` GitHub Action publishes a release for each changed
+slave folder and syncs its tag-specific GitHub release API URL into
+`headers.github_api`. Configure the repository Actions secrets
+`SUPABASE_URL` and `SUPABASE_SECRET_KEY` for the sync. The workflow adds
+rows with database-generated IDs, updates a folder's API URL when its latest
+release changes, and removes rows for folders with no matching
+`folder-vMAJOR.MINOR.PATCH` release. The database's foreign-key cascade handles
+any related assignments.

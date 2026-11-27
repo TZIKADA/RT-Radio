@@ -53,6 +53,23 @@ describe("application entry point", () => {
         );
     });
 
+    it("logs and throws when the application root element is missing", async () => {
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        document.body.innerHTML = "";
+
+        await expect(import("../../src/main")).rejects.toThrow(
+            "Missing application root element.",
+        );
+
+        expect(rootMocks.createRoot).not.toHaveBeenCalled();
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Application root element is missing",
+            expect.any(Error),
+        );
+    });
+
     it("loads the application when Supabase configuration is present", async () => {
         vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
         vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "test-publishable-key");
@@ -63,5 +80,36 @@ describe("application entry point", () => {
         expect(rootMocks.render).toHaveBeenCalledOnce();
         const markup = renderToStaticMarkup(rootMocks.render.mock.calls[0][0]);
         expect(markup).not.toContain("Unable to start RT-Radio");
+    });
+
+    it("shows a generic startup error when lazy application loading fails", async () => {
+        vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
+        vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "test-publishable-key");
+        const startupError = new Error("App module failed to load");
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        vi.doMock("../../src/App", () => {
+            throw startupError;
+        });
+
+        try {
+            await import("../../src/main");
+            await vi.waitFor(() =>
+                expect(consoleError).toHaveBeenCalledWith(
+                    "[RT-Radio] Application failed to start",
+                    expect.objectContaining({ cause: startupError }),
+                ),
+            );
+
+            const lastRender = rootMocks.render.mock.calls.at(-1)?.[0];
+            if (!lastRender) {
+                throw new Error("Startup fallback was not rendered.");
+            }
+            const markup = renderToStaticMarkup(lastRender);
+            expect(markup).toContain("Unable to start RT-Radio");
+        } finally {
+            vi.doUnmock("../../src/App");
+        }
     });
 });

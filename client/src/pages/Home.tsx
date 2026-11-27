@@ -3,7 +3,7 @@ import { Button, Card, Col, Container, Modal, Row } from "react-bootstrap";
 import AppControls from "../components/AppControls";
 import AdminErrorAlert from "../components/AdminErrorAlert";
 import { useTranslation } from "../components/LanguageProvider";
-import { fetchLatestGitHubRelease, type GitHubRelease } from "../lib/github-releases";
+import { fetchGitHubRelease, type GitHubRelease } from "../lib/github-releases";
 import { logAppError } from "../lib/errors";
 import { supabase } from "../lib/supabase";
 
@@ -114,7 +114,7 @@ export default function Home() {
                             header.github_api,
                         );
                         if (!releaseRequest) {
-                            releaseRequest = fetchLatestGitHubRelease(
+                            releaseRequest = fetchGitHubRelease(
                                 header.github_api,
                                 controller.signal,
                             );
@@ -253,10 +253,10 @@ export default function Home() {
                                 )}
                             </dl>
 
-                            <h3 className="h6">{t("releaseNotes")}</h3>
-                            <div className="release-notes mb-4">
-                                {selectedHeader.release.notes?.trim() ||
-                                    t("noReleaseNotes")}
+                            <h3 className="h6">{t("description")}</h3>
+                            <div className="release-description mb-4">
+                                {selectedHeader.release.description ||
+                                    t("noReleaseDescription")}
                             </div>
 
                             <h3 className="h6">{t("releaseFiles")}</h3>

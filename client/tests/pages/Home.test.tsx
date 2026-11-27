@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router";
@@ -175,6 +175,31 @@ describe("Home", () => {
         );
     });
 
+    it("shows a clean description without generated release metadata", async () => {
+        const user = userEvent.setup();
+        supabaseMocks.githubFetch.mockResolvedValue(
+            releaseResponse({
+                body: "A concise header description.\n\n---\n\nCommit: 292ca1c6abad3100a496a9976195d9900a945794\n\nIncluded headers:\n- `hardware/slaves/default/rt-radio-default.h`",
+            }),
+        );
+        renderHome();
+
+        await user.click(
+            await screen.findByRole("button", {
+                name: "Release details: Main Header Release",
+            }),
+        );
+
+        const dialog = screen.getByRole("dialog");
+        expect(
+            within(dialog).getByRole("heading", { name: "Description" }),
+        ).toBeInTheDocument();
+        expect(
+            within(dialog).getByText("A concise header description."),
+        ).toBeInTheDocument();
+        expect(within(dialog).queryByText(/Commit:|Included headers:/)).toBeNull();
+    });
+
     it("does not fetch release rows when the user has no assignments", async () => {
         supabaseMocks.assignmentsSelect.mockResolvedValue({
             data: [],
@@ -238,6 +263,45 @@ describe("Home", () => {
         expect(supabaseMocks.githubFetch).not.toHaveBeenCalled();
     });
 
+    it("shows an error when header records cannot be loaded", async () => {
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        const headersError = {
+            code: "PGRST116",
+            message: "Header records unavailable",
+        };
+        supabaseMocks.headersIn.mockResolvedValue({
+            data: null,
+            error: headersError,
+        });
+        renderHome();
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't load your files.",
+        );
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Loading assigned header releases failed",
+            headersError,
+        );
+        expect(supabaseMocks.githubFetch).not.toHaveBeenCalled();
+    });
+
+    it("treats a missing assignments response as an empty list", async () => {
+        supabaseMocks.assignmentsSelect.mockResolvedValue({
+            data: null,
+            error: null,
+        });
+        renderHome();
+
+        expect(
+            await screen.findByText(
+                "No downloadable headers are assigned to your account yet. Ask an administrator to add them to your user_headers list.",
+            ),
+        ).toBeInTheDocument();
+        expect(supabaseMocks.headersIn).not.toHaveBeenCalled();
+    });
+
     it("shows an error when GitHub cannot return a release", async () => {
         const consoleError = vi
             .spyOn(console, "error")
@@ -254,6 +318,57 @@ describe("Home", () => {
         expect(consoleError).toHaveBeenCalledWith(
             "[RT-Radio] Loading assigned header releases failed",
             new Error("GitHub API request failed with status 403."),
+        );
+    });
+
+    it("reports invalid header rows instead of requesting their releases", async () => {
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        supabaseMocks.headersIn.mockResolvedValue({
+            data: [{ id: 7, github_api: API_URL }],
+            error: null,
+        });
+        renderHome();
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't load your files.",
+        );
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Loading assigned header releases failed",
+            new Error("Assigned header has invalid GitHub release metadata."),
+        );
+        expect(supabaseMocks.githubFetch).not.toHaveBeenCalled();
+    });
+
+    it("shows fallbacks when descriptions, dates, and assets are unavailable", async () => {
+        const user = userEvent.setup();
+        supabaseMocks.githubFetch.mockResolvedValue(
+            releaseResponse({
+                name: "Bare Header Release",
+                body: "   ",
+                published_at: "not-a-date",
+                assets: [],
+            }),
+        );
+        renderHome();
+
+        await user.click(
+            await screen.findByRole("button", {
+                name: "Release details: Bare Header Release",
+            }),
+        );
+
+        const dialog = screen.getByRole("dialog");
+        expect(within(dialog).getByText("No description was provided."))
+            .toBeInTheDocument();
+        expect(within(dialog).getByText("No files are attached to this release."))
+            .toBeInTheDocument();
+        expect(dialog.querySelector("time")).toBeNull();
+
+        await user.click(within(dialog).getByRole("button", { name: "Close" }));
+        await waitFor(() =>
+            expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
         );
     });
 });

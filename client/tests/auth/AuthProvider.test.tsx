@@ -101,5 +101,66 @@ describe("AuthProvider", () => {
             "[RT-Radio] Loading authentication session failed",
             sessionError,
         );
+
+        const listener = authMocks.onAuthStateChange.mock.calls[0][0] as (
+            event: string,
+            session: Session | null,
+        ) => void;
+        act(() => listener("SIGNED_IN", {} as Session));
+        expect(screen.getByText("Signed in")).toBeInTheDocument();
+    });
+
+    it("reports synchronous failures while subscribing to auth changes", async () => {
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        const subscriptionError = new Error("Auth listener unavailable");
+        authMocks.onAuthStateChange.mockImplementation(() => {
+            throw subscriptionError;
+        });
+
+        render(
+            <AuthProvider>
+                <AuthStateProbe />
+            </AuthProvider>,
+        );
+
+        expect(
+            await screen.findByText("Authentication unavailable"),
+        ).toBeInTheDocument();
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Subscribing to authentication changes failed",
+            subscriptionError,
+        );
+    });
+
+    it("does not apply a session result after unmounting", async () => {
+        let resolveSession:
+            | ((value: {
+                  data: { session: Session | null };
+                  error: null;
+              }) => void)
+            | undefined;
+        const sessionRequest = new Promise<{
+            data: { session: Session | null };
+            error: null;
+        }>((resolve) => {
+            resolveSession = resolve;
+        });
+        authMocks.getSession.mockReturnValue(sessionRequest);
+
+        const { unmount } = render(
+            <AuthProvider>
+                <AuthStateProbe />
+            </AuthProvider>,
+        );
+        unmount();
+
+        await act(async () => {
+            resolveSession?.({ data: { session: null }, error: null });
+            await sessionRequest;
+        });
+
+        expect(authMocks.unsubscribe).toHaveBeenCalledOnce();
     });
 });
