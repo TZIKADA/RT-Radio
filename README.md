@@ -23,7 +23,7 @@ To avoid overloading a single frequency, the protocol supports Auto Balancing by
 The `Slave Header Release` GitHub Action publishes a release for each changed
 slave folder and syncs its tag-specific GitHub release API URL into
 `headers.github_api`. Configure the repository Actions secrets
-`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` for the sync. The workflow adds
+`SUPABASE_URL` and `SUPABASE_SECRET_KEY` for the sync. The workflow adds
 rows with database-generated IDs, updates a folder's API URL when its latest
 release changes, and removes rows for folders with no matching
 `folder-vMAJOR.MINOR.PATCH` release. The database's foreign-key cascade handles
