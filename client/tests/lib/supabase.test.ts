@@ -41,6 +41,7 @@ describe("Supabase client configuration", () => {
         expect(supabaseMocks.createClient).toHaveBeenCalledWith(
             "https://example.supabase.co",
             "publishable-key",
+            {db: { schema: "api" }}
         );
     });
 });
