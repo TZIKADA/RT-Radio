@@ -157,16 +157,11 @@ export default function Home() {
         : null;
 
     return (
-        <Container className="py-5">
+        <Container className="py-5 min-vh-100 d-flex flex-column">
             <AppControls />
 
-            <main className="pt-3">
-                <div className="mb-4">
-                    <h1 className="h2 mb-2">{t("yourHeaders")}</h1>
-                    <p className="text-muted">
-                        {t("downloadAssignedHeaders")}
-                    </p>
-                </div>
+            <main className="my-auto pt-5">
+                <h1 className="visually-hidden">{t("yourHeaders")}</h1>
 
                 {error && <AdminErrorAlert message={t("headersLoadFailed")} />}
                 {loading && <p className="text-muted">{t("loadingHeaders")}</p>}
@@ -175,41 +170,57 @@ export default function Home() {
                 )}
 
                 {!loading && !error && sortedHeaders.length > 0 && (
-                    <Row xs={1} md={2} lg={3} className="g-4">
-                        {sortedHeaders.map((header) => (
-                            <Col key={header.id}>
-                                <Card className="h-100 shadow-sm">
-                                    <Card.Body className="d-flex flex-column p-4">
-                                        <Card.Title as="h2" className="h5">
-                                            {header.release.title}
-                                        </Card.Title>
-                                        <div className="mt-auto d-flex flex-wrap gap-2">
-                                            <Button
-                                                variant="outline-secondary"
-                                                aria-label={`${t("releaseInfo")}: ${header.release.title}`}
-                                                onClick={() =>
-                                                    setSelectedHeader(header)
-                                                }
-                                            >
-                                                <i
-                                                    className="bi bi-info-circle"
-                                                    aria-hidden="true"
-                                                />
-                                            </Button>
-                                            <Button
-                                                as="a"
-                                                href={header.release.zipballUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                {t("download")}
-                                            </Button>
-                                        </div>
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                        ))}
-                    </Row>
+                    <Card className="shadow-sm">
+                        <Card.Body className="p-4">
+                            <Row xs={1} sm={2} md={3} xl={4} className="g-4">
+                                {sortedHeaders.map((header) => (
+                                    <Col key={header.id}>
+                                        <Card className="h-100">
+                                            <Card.Body className="d-flex flex-column gap-3 p-3">
+                                                <Card.Title
+                                                    as="h2"
+                                                    className="h5 mb-0 text-break"
+                                                >
+                                                    {header.release.title}
+                                                </Card.Title>
+                                                <div className="mt-auto d-grid gap-2">
+                                                    <Button
+                                                        variant="outline-secondary"
+                                                        className="d-flex align-items-center justify-content-center gap-2"
+                                                        aria-label={`${t("releaseInfo")}: ${header.release.title}`}
+                                                        onClick={() =>
+                                                            setSelectedHeader(
+                                                                header,
+                                                            )
+                                                        }
+                                                    >
+                                                        <i
+                                                            className="bi bi-info-circle"
+                                                            aria-hidden="true"
+                                                        />
+                                                        <span aria-hidden="true">
+                                                            {t("releaseInfo")}
+                                                        </span>
+                                                    </Button>
+                                                    <Button
+                                                        as="a"
+                                                        href={
+                                                            header.release
+                                                                .zipballUrl
+                                                        }
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        {t("download")}
+                                                    </Button>
+                                                </div>
+                                            </Card.Body>
+                                        </Card>
+                                    </Col>
+                                ))}
+                            </Row>
+                        </Card.Body>
+                    </Card>
                 )}
             </main>
 
@@ -221,25 +232,23 @@ export default function Home() {
             >
                 {selectedHeader && (
                     <>
-                        <Modal.Header closeButton>
+                        <Modal.Header closeButton dir="ltr">
                             <Modal.Title>
                                 {selectedHeader.release.title}
                             </Modal.Title>
                         </Modal.Header>
                         <Modal.Body>
-                            <dl className="row mb-4">
-                                <dt className="col-sm-3">
-                                    {t("releaseTag")}
-                                </dt>
-                                <dd className="col-sm-9">
-                                    <code>{selectedHeader.release.tag}</code>
+                            <dl className="release-details mb-4">
+                                <dt>{t("releaseTag")}</dt>
+                                <dd>
+                                    <code dir="ltr">
+                                        {selectedHeader.release.tag}
+                                    </code>
                                 </dd>
                                 {releaseDate && (
                                     <>
-                                        <dt className="col-sm-3">
-                                            {t("releaseDate")}
-                                        </dt>
-                                        <dd className="col-sm-9">
+                                        <dt>{t("releaseDate")}</dt>
+                                        <dd>
                                             <time
                                                 dateTime={
                                                     selectedHeader.release
@@ -253,13 +262,13 @@ export default function Home() {
                                 )}
                             </dl>
 
-                            <h3 className="h6">{t("description")}</h3>
-                            <div className="release-description mb-4">
+                            <h3 className="h6 fw-bold">{t("description")}</h3>
+                            <div className="release-description mb-4" dir="auto">
                                 {selectedHeader.release.description ||
                                     t("noReleaseDescription")}
                             </div>
 
-                            <h3 className="h6">{t("releaseFiles")}</h3>
+                            <h3 className="h6 fw-bold">{t("releaseFiles")}</h3>
                             {selectedHeader.release.assets.length > 0 ? (
                                 <ul className="list-unstyled mb-0">
                                     {selectedHeader.release.assets.map(
@@ -268,7 +277,7 @@ export default function Home() {
                                                 key={asset.downloadUrl}
                                                 className="d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 border-bottom"
                                             >
-                                                <span>
+                                                <span dir="ltr">
                                                     <span className="fw-semibold">
                                                         {asset.name}
                                                     </span>
