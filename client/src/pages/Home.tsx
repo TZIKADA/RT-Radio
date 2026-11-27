@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Button, Card, Container, Row, Col } from "react-bootstrap";
-import { Link } from "react-router";
 import AppControls from "../components/AppControls";
 import AdminErrorAlert from "../components/AdminErrorAlert";
 import { useTranslation } from "../components/LanguageProvider";
@@ -81,14 +80,9 @@ export default function Home() {
 
     return (
         <Container className="py-5">
-            <header className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-5">
-                <Link to="/" className="text-decoration-none text-body">
-                    <span className="h3 mb-0">RT-Radio</span>
-                </Link>
-                <AppControls showAccount />
-            </header>
+            <AppControls showAccount />
 
-            <main>
+            <main className="pt-3">
                 <div className="mb-4">
                     <h1 className="h2 mb-2">{t("yourHeaders")}</h1>
                     <p className="text-muted">
