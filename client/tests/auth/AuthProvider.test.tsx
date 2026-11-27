@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import type { Session } from "@supabase/supabase-js";
-import { useAuth } from "../../src/scripts/useAuth";
+import { useAuth } from "../../src/auth/useAuth";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
@@ -18,7 +18,7 @@ vi.mock("../../src/lib/supabase", () => ({
     },
 }));
 
-import AuthProvider from "../../src/components/AuthProvider";
+import AuthProvider from "../../src/auth/AuthProvider";
 
 function AuthStateProbe() {
     const { session, loading, authError } = useAuth();

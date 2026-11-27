@@ -6,14 +6,21 @@
         <meta name="color-scheme" content="light dark" />
         <title>RT-Radio | Contact</title>
         <script>
-            const savedTheme = localStorage.getItem("rt-radio-theme");
-            const theme =
-                savedTheme === "light" || savedTheme === "dark"
-                    ? savedTheme
-                    : window.matchMedia("(prefers-color-scheme: dark)").matches
-                      ? "dark"
-                      : "light";
-            document.documentElement.setAttribute("data-bs-theme", theme);
+            const themePreference = window.matchMedia(
+                "(prefers-color-scheme: dark)",
+            );
+            function applyThemePreference() {
+                const savedTheme = localStorage.getItem("rt-radio-theme");
+                const theme =
+                    savedTheme === "light" || savedTheme === "dark"
+                        ? savedTheme
+                        : themePreference.matches
+                          ? "dark"
+                          : "light";
+                document.documentElement.setAttribute("data-bs-theme", theme);
+            }
+            applyThemePreference();
+            themePreference.addEventListener("change", applyThemePreference);
         </script>
         <style>
             :root {
@@ -60,7 +67,7 @@
             dl {
                 display: grid;
                 grid-template-columns: max-content minmax(0, 1fr);
-                width: max-content;
+                width: 100%;
                 max-width: 100%;
                 gap: 1rem;
                 margin-bottom: 0;
@@ -80,9 +87,14 @@
             .contact-name {
                 display: inline-flex;
                 align-items: baseline;
+                flex-wrap: wrap;
+                justify-content: flex-end;
                 gap: 0.5em;
-                white-space: nowrap;
                 unicode-bidi: isolate;
+            }
+
+            a[dir="ltr"] {
+                overflow-wrap: anywhere;
             }
 
             [hidden] {
@@ -128,6 +140,12 @@
                 overflow: hidden;
                 clip: rect(0, 0, 0, 0);
                 white-space: nowrap;
+            }
+
+            @media (max-width: 24rem) {
+                dl {
+                    grid-template-columns: minmax(0, 1fr);
+                }
             }
 
         </style>
@@ -222,13 +240,32 @@
             };
             const languageSelect =
                 document.getElementById("language-select");
-            const preferredLanguage =
-                localStorage.getItem("rt-radio-language") ||
-                navigator.languages?.[0] ||
-                navigator.language ||
-                "en";
+            const languageStorageKey = "rt-radio-language";
+
+            function getSystemLanguage() {
+                const preferences = [
+                    ...(navigator.languages ?? []),
+                    navigator.language ?? "",
+                ];
+                for (const preference of preferences) {
+                    const language = preference.toLowerCase().split("-")[0];
+                    if (Object.hasOwn(copy, language)) return language;
+                }
+                return "en";
+            }
+
+            function getInitialLanguage() {
+                const savedLanguage =
+                    localStorage.getItem(languageStorageKey);
+                return Object.hasOwn(copy, savedLanguage)
+                    ? savedLanguage
+                    : getSystemLanguage();
+            }
+
             function applyLanguage(language) {
-                const normalizedLanguage = copy[language] ? language : "en";
+                const normalizedLanguage = Object.hasOwn(copy, language)
+                    ? language
+                    : "en";
                 const strings = copy[normalizedLanguage];
                 const isHebrew = normalizedLanguage === "he";
                 const isRtl =
@@ -264,15 +301,23 @@
                 languageSelect.value = normalizedLanguage;
             }
 
-            const initialLanguage =
-                preferredLanguage.toLowerCase().split("-")[0];
-            applyLanguage(initialLanguage);
+            applyLanguage(getInitialLanguage());
             languageSelect.addEventListener("change", () => {
                 localStorage.setItem(
-                    "rt-radio-language",
+                    languageStorageKey,
                     languageSelect.value,
                 );
                 applyLanguage(languageSelect.value);
+            });
+            window.addEventListener("languagechange", () => {
+                if (
+                    !Object.hasOwn(
+                        copy,
+                        localStorage.getItem(languageStorageKey),
+                    )
+                ) {
+                    applyLanguage(getSystemLanguage());
+                }
             });
         </script>
     </body>

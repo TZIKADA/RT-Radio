@@ -2,10 +2,10 @@ import { useState, type SubmitEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { Alert, Button, Form } from "react-bootstrap";
 import AuthCard from "../components/AuthCard";
-import { useAuth } from "../scripts/useAuth";
+import { useAuth } from "../auth/useAuth";
 import { supabase } from "../lib/supabase";
 
-import { MIN_PASSWORD_LENGTH } from "../scripts/auth";
+import { MIN_PASSWORD_LENGTH } from "../auth/auth";
 import { useTranslation } from "../components/LanguageProvider";
 import AdminErrorAlert from "../components/AdminErrorAlert";
 import { logAppError } from "../lib/errors";
