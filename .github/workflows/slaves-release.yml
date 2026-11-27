@@ -1,0 +1,162 @@
+name: Slave Header Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "hardware/slaves/**/*.h"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: slave-header-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release changed headers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Create releases for changed headers
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          CURSOR_REF="refs/tags/slave-header-release-cursor"
+          if git show-ref --verify --quiet "$CURSOR_REF"; then
+            START_SHA="$(git rev-parse "$CURSOR_REF^{commit}")"
+            if ! git merge-base --is-ancestor "$START_SHA" "$AFTER_SHA"; then
+              echo "::error::Release cursor is not an ancestor of $AFTER_SHA"
+              exit 1
+            fi
+          else
+            START_SHA="$BEFORE_SHA"
+          fi
+
+          if [[ "$START_SHA" =~ ^0+$ ]]; then
+            COMMIT_LIST="$(git rev-list --first-parent --reverse "$AFTER_SHA")"
+          else
+            COMMIT_LIST="$(git rev-list --first-parent --reverse "$START_SHA..$AFTER_SHA")"
+          fi
+
+          COMMITS=()
+          if [[ -n "$COMMIT_LIST" ]]; then
+            mapfile -t COMMITS <<< "$COMMIT_LIST"
+          fi
+
+          declare -A latest_versions=()
+
+          for commit in "${COMMITS[@]}"; do
+            WORK_DIR="$(mktemp -d "$RUNNER_TEMP/slave-release.XXXXXX")"
+            DIFF_FILE="$WORK_DIR/changed-paths"
+
+            if git rev-parse "$commit^1" >/dev/null 2>&1; then
+              git diff --name-only --no-renames -z "$commit^1" "$commit" > "$DIFF_FILE"
+            else
+              git diff-tree --root --no-commit-id --name-only -r -z "$commit" > "$DIFF_FILE"
+            fi
+
+            declare -A folder_files=()
+            while IFS= read -r -d '' path; do
+              [[ "$path" =~ ^hardware/slaves/([^/]+)/.+\.h$ ]] || continue
+              folder="${BASH_REMATCH[1]}"
+              if [[ ! "$folder" =~ ^[A-Za-z0-9_-]+$ ]]; then
+                echo "::error::Unsupported slave folder name '$folder'"
+                exit 1
+              fi
+              if ! git cat-file -e "$commit:$path" 2>/dev/null; then
+                continue
+              fi
+              if [[ -z "${folder_files[$folder]+present}" ]]; then
+                folder_files["$folder"]="$WORK_DIR/$folder.files"
+                : > "${folder_files[$folder]}"
+              fi
+              printf '%s\0' "$path" >> "${folder_files[$folder]}"
+            done < "$DIFF_FILE"
+
+            for folder in "${!folder_files[@]}"; do
+              mapfile -d '' -t paths < "${folder_files[$folder]}"
+              mapfile -t tags < <(git tag --list "${folder}-v*" --sort=-v:refname)
+
+              if [[ -z "${latest_versions[$folder]+present}" ]]; then
+                latest=""
+                for existing_tag in "${tags[@]}"; do
+                  version="${existing_tag#"$folder-v"}"
+                  if [[ "$existing_tag" == "$folder-v"* && "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                    latest="$version"
+                    break
+                  fi
+                done
+                latest_versions["$folder"]="$latest"
+              fi
+
+              already_released=false
+              for existing_tag in "${tags[@]}"; do
+                version="${existing_tag#"$folder-v"}"
+                if [[ "$existing_tag" == "$folder-v"* && "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                  if existing_commit="$(git rev-parse --verify "$existing_tag^{commit}" 2>/dev/null)" &&
+                    [[ "$existing_commit" == "$commit" ]]; then
+                    echo "Release already exists for $folder at $commit; skipping."
+                    already_released=true
+                    break
+                  fi
+                fi
+              done
+              if [[ "$already_released" == true ]]; then
+                continue
+              fi
+
+              latest="${latest_versions[$folder]}"
+              if [[ -z "$latest" ]]; then
+                new="0.0.1"
+              else
+                IFS=. read -r major minor patch <<< "$latest"
+                new="$major.$minor.$((patch + 1))"
+              fi
+              tag="${folder}-v${new}"
+
+              ASSET_DIR="$WORK_DIR/assets-$folder"
+              mkdir -p "$ASSET_DIR"
+              assets=()
+              {
+                echo "Commit: $commit"
+                echo
+                echo "Included headers:"
+                for path in "${paths[@]}"; do
+                  echo "- \`$path\`"
+                  relative="${path#hardware/slaves/$folder/}"
+                  asset_name="${relative//\//__}"
+                  candidate="$asset_name"
+                  suffix=1
+                  while [[ -e "$ASSET_DIR/$asset_name" ]]; do
+                    asset_name="${candidate}-$suffix"
+                    suffix=$((suffix + 1))
+                  done
+                  git show "$commit:$path" > "$ASSET_DIR/$asset_name"
+                  assets+=("$ASSET_DIR/$asset_name")
+                done
+              } > "$WORK_DIR/notes.md"
+
+              gh release create "$tag" "${assets[@]}" \
+                --target "$commit" \
+                --title "$folder" \
+                --notes-file "$WORK_DIR/notes.md"
+
+              latest_versions["$folder"]="$new"
+              echo "Released $tag for $folder at $commit."
+            done
+
+            rm -rf -- "$WORK_DIR"
+          done
+
+          git push --force origin "$AFTER_SHA:$CURSOR_REF"
