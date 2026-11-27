@@ -95,7 +95,7 @@
   }
 }
 
-#docs {
+#guide {
   border-right: 1px solid var(--border);
 
   @media (max-width: 1024px) {

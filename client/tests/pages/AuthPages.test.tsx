@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Session } from "@supabase/supabase-js";
 import { MemoryRouter, Route, Routes } from "react-router";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthContext } from "../../src/scripts/auth-context";
 
 const supabaseMocks = vi.hoisted(() => ({
@@ -41,7 +41,7 @@ function renderWithAuth(
     loading = false,
 ) {
     return render(
-        <AuthContext.Provider value={{ session, loading }}>
+        <AuthContext.Provider value={{ session, loading, authError: false }}>
             <MemoryRouter initialEntries={[initialEntry]}>
                 <Routes>
                     <Route path={initialEntry} element={page} />
@@ -80,9 +80,16 @@ beforeEach(() => {
     });
 });
 
+afterEach(() => {
+    vi.restoreAllMocks();
+});
+
 describe("Login", () => {
     it("submits credentials and displays authentication errors", async () => {
         const user = userEvent.setup();
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
         supabaseMocks.signInWithPassword.mockResolvedValue({
             error: { message: "Invalid credentials" },
         });
@@ -96,7 +103,42 @@ describe("Login", () => {
             email: "user@example.com",
             password: "password123",
         });
-        expect(await screen.findByText("Invalid credentials")).toBeInTheDocument();
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't sign you in. Check your details and try again.",
+        );
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "If the issue persists, contact the site administrator.",
+        );
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Signing in failed",
+            { message: "Invalid credentials" },
+        );
+        expect(screen.getByRole("button", { name: "Login" })).toBeEnabled();
+    });
+
+    it("handles rejected sign-in requests without exposing the error details", async () => {
+        const user = userEvent.setup();
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        const requestError = new Error("Network timeout");
+        supabaseMocks.signInWithPassword.mockRejectedValue(requestError);
+        renderWithAuth(<Login />);
+
+        await user.type(screen.getByLabelText("Email"), "user@example.com");
+        await user.type(screen.getByLabelText("Password"), "password123");
+        await user.click(screen.getByRole("button", { name: "Login" }));
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't sign you in.",
+        );
+        expect(await screen.findByRole("alert")).not.toHaveTextContent(
+            "Network timeout",
+        );
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Signing in failed",
+            requestError,
+        );
         expect(screen.getByRole("button", { name: "Login" })).toBeEnabled();
     });
 
@@ -217,6 +259,9 @@ describe("SignUp", () => {
 
     it("displays Supabase sign-up errors and re-enables the form", async () => {
         const user = userEvent.setup();
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
         supabaseMocks.signUp.mockResolvedValue({
             data: { user: null, session: null },
             error: { message: "Sign-up unavailable" },
@@ -234,7 +279,19 @@ describe("SignUp", () => {
         );
         await user.click(screen.getByRole("button", { name: "Sign Up" }));
 
-        expect(await screen.findByText("Sign-up unavailable")).toBeInTheDocument();
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't complete that request. Please try again.",
+        );
+        expect(
+            screen.getByRole("link", { name: "contact the site administrator." }),
+        ).toHaveAttribute("href", "/contact");
+        expect(await screen.findByRole("alert")).not.toHaveTextContent(
+            "Sign-up unavailable",
+        );
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Creating account failed",
+            { message: "Sign-up unavailable" },
+        );
         expect(screen.getByRole("button", { name: "Sign Up" })).toBeEnabled();
     });
 
@@ -288,6 +345,9 @@ describe("ForgotPassword", () => {
 
     it("displays reset request errors", async () => {
         const user = userEvent.setup();
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
         supabaseMocks.resetPasswordForEmail.mockResolvedValue({
             error: { message: "Email service unavailable" },
         });
@@ -298,9 +358,16 @@ describe("ForgotPassword", () => {
             screen.getByRole("button", { name: "Send reset link" }),
         );
 
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't complete that request. Please try again.",
+        );
         expect(
-            await screen.findByText("Email service unavailable"),
-        ).toBeInTheDocument();
+            screen.getByRole("link", { name: "contact the site administrator." }),
+        ).toHaveAttribute("href", "/contact");
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Requesting password reset failed",
+            { message: "Email service unavailable" },
+        );
     });
 });
 
@@ -309,7 +376,9 @@ describe("ResetPassword", () => {
         renderWithAuth(<ResetPassword />);
 
         expect(
-            screen.getByText("This reset link is invalid or has expired."),
+            screen.getByText(
+                "This reset link is invalid or expired. Request a new one.",
+            ),
         ).toBeInTheDocument();
     });
 
@@ -346,6 +415,9 @@ describe("ResetPassword", () => {
 
     it("displays update errors and restores the submit button", async () => {
         const user = userEvent.setup();
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
         supabaseMocks.updateUser.mockResolvedValue({
             error: { message: "Password update failed" },
         });
@@ -360,9 +432,16 @@ describe("ResetPassword", () => {
             screen.getByRole("button", { name: "Set new password" }),
         );
 
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't complete that request. Please try again.",
+        );
         expect(
-            await screen.findByText("Password update failed"),
-        ).toBeInTheDocument();
+            screen.getByRole("link", { name: "contact the site administrator." }),
+        ).toHaveAttribute("href", "/contact");
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Resetting password failed",
+            { message: "Password update failed" },
+        );
         expect(
             screen.getByRole("button", { name: "Set new password" }),
         ).toBeEnabled();
@@ -372,7 +451,9 @@ describe("ResetPassword", () => {
         renderWithAuth(<ResetPassword />, null, "/reset-password", true);
 
         expect(
-            screen.queryByText("This reset link is invalid or has expired."),
+            screen.queryByText(
+                "This reset link is invalid or expired. Request a new one.",
+            ),
         ).not.toBeInTheDocument();
         expect(
             screen.queryByRole("button", { name: "Set new password" }),
