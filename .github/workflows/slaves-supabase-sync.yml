@@ -18,11 +18,15 @@ jobs:
       - name: Validate Supabase credentials
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: |
           set -euo pipefail
-          if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_SERVICE_ROLE_KEY" ]]; then
-            echo "::error::Configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY as repository Actions secrets."
+          if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_SECRET_KEY" ]]; then
+            echo "::error::Configure SUPABASE_URL and SUPABASE_SECRET_KEY as repository Actions secrets."
+            exit 1
+          fi
+          if [[ "$SUPABASE_SECRET_KEY" != sb_secret_* ]]; then
+            echo "::error::SUPABASE_SECRET_KEY must be a Supabase secret API key, not a legacy JWT."
             exit 1
           fi
 
@@ -31,9 +35,27 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: |
           set -euo pipefail
+
+          # Prints the response body on success; on failure prints the status
+          # code and body so the real error is visible in the Actions log.
+          supa() {  # usage: supa METHOD URL [curl args...]
+            local method="$1" url="$2"; shift 2
+            local out status
+            out="$(mktemp)"
+            status="$(curl --silent --show-error --request "$method" "$url" \
+              -H "apikey: $SUPABASE_SECRET_KEY" "$@" \
+              -o "$out" -w '%{http_code}')"
+            if [ "$status" -ge 400 ]; then
+              echo "::error::Supabase $method $url returned HTTP $status: $(cat "$out")" >&2
+              rm -f "$out"
+              exit 1
+            fi
+            cat "$out"
+            rm -f "$out"
+          }
 
           # Keep one database row for the latest existing release in each folder.
           RELEASE_APIS="$(
@@ -63,15 +85,12 @@ jobs:
           PAGE_SIZE=1000
 
           while true; do
-            PAGE="$(
-              curl --fail-with-body --silent --show-error --get "$REST_HEADERS_URL" \
-                --data-urlencode "select=id,github_api" \
-                --data-urlencode "github_api=like.${API_PREFIX}*" \
-                --data-urlencode "order=id.asc" \
-                -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-                -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-                -H "Range: $OFFSET-$((OFFSET + PAGE_SIZE - 1))"
-            )"
+            PAGE="$(supa GET "$REST_HEADERS_URL" --get \
+              --data-urlencode "select=id,github_api" \
+              --data-urlencode "github_api=like.${API_PREFIX}*" \
+              --data-urlencode "order=id.asc" \
+              --data-urlencode "limit=$PAGE_SIZE" \
+              --data-urlencode "offset=$OFFSET")"
             PAGE_COUNT="$(jq 'length' <<< "$PAGE")"
             EXISTING_ROWS="$(jq -cn \
               --argjson existing "$EXISTING_ROWS" \
@@ -83,8 +102,11 @@ jobs:
             OFFSET=$((OFFSET + PAGE_SIZE))
           done
 
-          jq -e 'all(.[]; (.id | type == "string") and (.github_api | type == "string"))' \
-            <<< "$EXISTING_ROWS" >/dev/null
+          if ! jq -e 'all(.[]; (.id | type == "string" or type == "number") and (.github_api | type == "string"))' \
+               <<< "$EXISTING_ROWS" >/dev/null; then
+            echo "::error::Unexpected row shape in headers table (id or github_api has the wrong type)."
+            exit 1
+          fi
 
           SYNC_PLAN="$(jq -cn \
             --argjson rows "$EXISTING_ROWS" \
@@ -123,13 +145,10 @@ jobs:
 
           NEW_ROWS="$(jq -c '[.[] | select(.action == "insert") | {github_api}]' <<< "$SYNC_PLAN")"
           if [[ "$(jq 'length' <<< "$NEW_ROWS")" -gt 0 ]]; then
-            curl --fail-with-body --silent --show-error \
-              --request POST "$REST_HEADERS_URL" \
-              -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            supa POST "$REST_HEADERS_URL" \
               -H "Content-Type: application/json" \
               -H "Prefer: return=minimal" \
-              --data "$NEW_ROWS"
+              --data "$NEW_ROWS" >/dev/null
           fi
 
           mapfile -t UPDATES < <(jq -r \
@@ -142,13 +161,10 @@ jobs:
               exit 1
             fi
             payload="$(jq -cn --arg github_api "$github_api" '{github_api: $github_api}')"
-            curl --fail-with-body --silent --show-error \
-              --request PATCH "$REST_HEADERS_URL?id=eq.$id" \
-              -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            supa PATCH "$REST_HEADERS_URL?id=eq.$id" \
               -H "Content-Type: application/json" \
               -H "Prefer: return=minimal" \
-              --data "$payload"
+              --data "$payload" >/dev/null
           done
 
           mapfile -t STALE_IDS < <(jq -r \
@@ -162,11 +178,8 @@ jobs:
               fi
             done
             id_csv="$(IFS=,; printf '%s' "${batch[*]}")"
-            curl --fail-with-body --silent --show-error \
-              --request DELETE "$REST_HEADERS_URL?id=in.($id_csv)" \
-              -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-              -H "Prefer: return=minimal"
+            supa DELETE "$REST_HEADERS_URL?id=in.($id_csv)" \
+              -H "Prefer: return=minimal" >/dev/null
           done
 
           echo "Supabase headers synced: $(jq 'length' <<< "$RELEASE_APIS") folders, ${#STALE_IDS[@]} stale rows removed."
