@@ -4,6 +4,7 @@ on:
   workflow_run:
     workflows: ["Slave Header Release"]
     types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -16,14 +17,20 @@ concurrency:
 jobs:
   sync:
     name: Sync latest slave releases to Supabase
+    # Don't sync after a failed release run.
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Validate Supabase credentials
+      - name: Sync latest releases
         env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: |
           set -euo pipefail
+
           if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_SECRET_KEY" ]]; then
             echo "::error::Configure SUPABASE_URL and SUPABASE_SECRET_KEY as repository Actions secrets."
             exit 1
@@ -33,29 +40,21 @@ jobs:
             exit 1
           fi
 
-      - name: Sync latest releases
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-        run: |
-          set -euo pipefail
-
           # Prints the response body on success; on failure prints the status
           # code and body so the real error is visible in the Actions log.
+          # Only GETs are retried: retrying a write could apply it twice.
           supa() { # usage: supa METHOD URL [curl args...]
             local method="$1" url="$2"; shift 2
-            local out status profile_header=()
+            local out status extra=()
             if [[ "$method" == "GET" ]]; then
-              profile_header=(-H "Accept-Profile: api")
+              extra=(-H "Accept-Profile: api" --retry 3 --retry-all-errors)
             else
-              profile_header=(-H "Content-Profile: api")
+              extra=(-H "Content-Profile: api")
             fi
             out="$(mktemp)"
-            status="$(curl --silent --show-error --request "$method" "$url" \
+            status="$(curl --silent --show-error --max-time 30 --request "$method" "$url" \
               -H "apikey: $SUPABASE_SECRET_KEY" \
-              "${profile_header[@]}" \
+              "${extra[@]}" \
               "$@" \
               -o "$out" -w '%{http_code}')"
             if [ "$status" -ge 400 ]; then
@@ -67,7 +66,9 @@ jobs:
             rm -f "$out"
           }
 
-          # Keep one database row for the latest existing release in each folder.
+          # Keep one database row per folder, pointing at its highest version.
+          # (Highest semver, not newest publish time: publish times can tie or
+          # be out of order after a backfill.)
           RELEASE_APIS="$(
             gh api --paginate "repos/$GH_REPO/releases?per_page=100" \
               | jq -s --arg repo "$GH_REPO" '
@@ -76,17 +77,24 @@ jobs:
                     | select(.draft == false and (.published_at | type == "string"))
                     | .tag_name as $tag
                     | select($tag | test("^[A-Za-z0-9_-]+-v[0-9]+\\.[0-9]+\\.[0-9]+$"))
+                    | ($tag | capture("^(?<folder>[A-Za-z0-9_-]+)-v(?<v>[0-9]+\\.[0-9]+\\.[0-9]+)$")) as $m
                     | {
-                        folder: ($tag | capture("^(?<folder>[A-Za-z0-9_-]+)-v[0-9]+\\.[0-9]+\\.[0-9]+$").folder),
-                        published_at: .published_at,
+                        folder: $m.folder,
+                        version: ($m.v | split(".") | map(tonumber)),
                         github_api: "https://api.github.com/repos/\($repo)/releases/tags/\($tag)"
                       }
                   ]
-                  | sort_by(.published_at)
+                  | sort_by(.version)
                   | group_by(.folder)
                   | map(last)
                 '
           )"
+
+          # Safety net: an empty list would make the plan below delete every row.
+          if [[ "$(jq 'length' <<< "$RELEASE_APIS")" -eq 0 ]]; then
+            echo "::error::No published slave releases found; refusing to modify the headers table."
+            exit 1
+          fi
 
           API_PREFIX="https://api.github.com/repos/$GH_REPO/releases/tags/"
           REST_HEADERS_URL="${SUPABASE_URL%/}/rest/v1/headers"
@@ -118,6 +126,8 @@ jobs:
             exit 1
           fi
 
+          # Rows are updated in place (not deleted and re-inserted) so their ids
+          # stay stable for anything that references them.
           SYNC_PLAN="$(jq -cn \
             --argjson rows "$EXISTING_ROWS" \
             --argjson desired "$RELEASE_APIS" '
