@@ -4,7 +4,7 @@ import { Alert, Button, Form } from "react-bootstrap";
 import AuthCard from "../components/AuthCard";
 import { useAuth } from "../scripts/useAuth";
 import { supabase } from "../lib/supabase";
-import { MIN_PASSWORD_LENGTH } from "../lib/auth";
+import { MIN_PASSWORD_LENGTH } from "../scripts/auth";
 
 export default function SignUp() {
     const { session, loading } = useAuth();
