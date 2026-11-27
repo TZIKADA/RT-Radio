@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Card, Container, Row, Col } from "react-bootstrap";
-import { Link } from "react-router";
-import ThemeToggle from "../components/ToggleTheme";
+import { Button, Card, Container, Row, Col } from "react-bootstrap";
+import AppControls from "../components/AppControls";
+import AdminErrorAlert from "../components/AdminErrorAlert";
+import { useTranslation } from "../components/LanguageProvider";
+import { logAppError } from "../lib/errors";
 import { supabase } from "../lib/supabase";
 
 type HeaderRecord = {
@@ -11,20 +13,8 @@ type HeaderRecord = {
     storage_path: string;
 };
 
-function getErrorMessage(error: unknown, fallback: string) {
-    if (error instanceof Error) return error.message;
-    if (
-        typeof error === "object" &&
-        error !== null &&
-        "message" in error &&
-        typeof error.message === "string"
-    ) {
-        return error.message;
-    }
-    return fallback;
-}
-
 export default function Home() {
+    const { t } = useTranslation();
     const [headers, setHeaders] = useState<HeaderRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -59,20 +49,15 @@ export default function Home() {
                 if (headersError) throw headersError;
                 setHeaders(data ?? []);
             } catch (loadError) {
-                console.error(loadError);
-                setError(
-                    getErrorMessage(
-                        loadError,
-                        "Could not read your header assignments. Check the user_headers table and its SELECT policy.",
-                    ),
-                );
+                logAppError("Loading assigned header files failed", loadError);
+                setError(t("headersLoadFailed"));
             } finally {
                 setLoading(false);
             }
         }
 
         void loadHeaders();
-    }, []);
+    }, [t]);
 
     async function downloadHeader(header: HeaderRecord) {
         setDownloadingId(header.id);
@@ -86,13 +71,8 @@ export default function Home() {
             if (signedUrlError) throw signedUrlError;
             window.location.assign(data.signedUrl);
         } catch (downloadError) {
-            console.error(downloadError);
-            setDownloadError(
-                getErrorMessage(
-                    downloadError,
-                    `Failed to prepare the download for ${header.name}.`,
-                ),
-            );
+            logAppError(`Preparing download for header ${header.id} failed`, downloadError);
+            setDownloadError(t("downloadFailed"));
         } finally {
             setDownloadingId(null);
         }
@@ -100,42 +80,28 @@ export default function Home() {
 
     return (
         <Container className="py-5">
-            <header className="d-flex justify-content-between align-items-center mb-5">
-                <Link to="/" className="text-decoration-none text-body">
-                    <span className="h3 mb-0">RT-Radio</span>
-                </Link>
-                <div className="d-flex align-items-center gap-2">
-                    <Link to="/account" className="btn btn-outline-secondary">
-                        Account
-                    </Link>
-                    <ThemeToggle />
-                </div>
-            </header>
+            <AppControls />
 
-            <main>
+            <main className="pt-3">
                 <div className="mb-4">
-                    <h1 className="h2 mb-2">Your headers</h1>
+                    <h1 className="h2 mb-2">{t("yourHeaders")}</h1>
                     <p className="text-muted">
-                        Download the header files assigned to your account.
+                        {t("downloadAssignedHeaders")}
                     </p>
                 </div>
 
                 {error && (
-                    <Alert variant="danger">
-                        Failed to load headers: {error}
-                    </Alert>
+                    <AdminErrorAlert message={error} />
                 )}
                 {downloadError && (
-                    <Alert variant="danger" role="alert">
-                        {downloadError}
-                    </Alert>
+                    <AdminErrorAlert message={downloadError} />
                 )}
-                {loading && <p className="text-muted">Loading headers…</p>}
+                {loading && (
+                    <p className="text-muted">{t("loadingHeaders")}</p>
+                )}
                 {!loading && !error && headers.length === 0 && (
                     <p className="text-muted">
-                        No downloadable headers are assigned to your account
-                        yet. Ask an administrator to add them to your
-                        user_headers list.
+                        {t("noHeadersAssigned")}
                     </p>
                 )}
 
@@ -161,8 +127,8 @@ export default function Home() {
                                             disabled={downloadingId !== null}
                                         >
                                             {downloadingId === header.id
-                                                ? "Preparing download…"
-                                                : "Download"}
+                                                ? t("preparingDownload")
+                                                : t("download")}
                                         </Button>
                                     </Card.Body>
                                 </Card>

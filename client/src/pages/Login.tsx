@@ -1,12 +1,16 @@
 import { useState, type SubmitEvent } from "react";
 import { Link, Navigate } from "react-router";
-import { Alert, Button, Form } from "react-bootstrap";
+import { Button, Form } from "react-bootstrap";
 import AuthCard from "../components/AuthCard";
 import { useAuth } from "../scripts/useAuth";
 import { supabase } from "../lib/supabase";
+import { useTranslation } from "../components/LanguageProvider";
+import AdminErrorAlert from "../components/AdminErrorAlert";
+import { logAppError } from "../lib/errors";
 
 export default function Login() {
     const { session, loading } = useAuth();
+    const { t } = useTranslation();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
@@ -23,27 +27,35 @@ export default function Login() {
         setBusy(true);
         setError(null);
 
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
+        try {
+            const { error: signInError } =
+                await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
 
-        if (signInError) {
-            setError(signInError.message);
+            if (signInError) {
+                logAppError("Signing in failed", signInError);
+                setError(t("signInFailed"));
+            }
+        } catch (signInError) {
+            logAppError("Signing in failed", signInError);
+            setError(t("signInFailed"));
+        } finally {
             setBusy(false);
         }
     }
 
     return (
-        <AuthCard title="RT-Radio">
+        <AuthCard title="Login">
             <Form onSubmit={handleSubmit}>
-                {error && <Alert variant="danger">{error}</Alert>}
+                {error && <AdminErrorAlert message={error} />}
 
                 <Form.Group className="mb-3" controlId="email">
-                    <Form.Label>Email</Form.Label>
+                    <Form.Label>{t("email")}</Form.Label>
                     <Form.Control
                         type="email"
-                        placeholder="yourmail@example.com"
+                        placeholder="email@example.com"
                         autoComplete="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -52,10 +64,10 @@ export default function Login() {
                 </Form.Group>
 
                 <Form.Group className="mb-2" controlId="password">
-                    <Form.Label>Password</Form.Label>
+                    <Form.Label>{t("password")}</Form.Label>
                     <Form.Control
                         type="password"
-                        placeholder="Enter password"
+                        placeholder={t("enterPassword")}
                         autoComplete="current-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -65,16 +77,16 @@ export default function Login() {
 
                 <div className="text-end mb-4">
                     <Link to="/forgot-password" className="small">
-                        Forgot your password?
+                        {t("forgotYourPassword")}
                     </Link>
                 </div>
 
                 <div className="d-grid gap-2">
                     <Button type="submit" variant="primary" disabled={busy}>
-                        {busy ? "Logging in…" : "Login"}
+                        {busy ? t("loggingIn") : t("login")}
                     </Button>
                     <Link to="/sign-up" className="btn btn-outline-secondary">
-                        Sign Up
+                        {t("signUp")}
                     </Link>
                 </div>
             </Form>

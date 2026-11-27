@@ -147,12 +147,19 @@ describe("Home", () => {
         });
         renderHome();
 
-        expect(
-            await screen.findByText(
-                "Failed to load headers: Database unavailable",
-            ),
-        ).toBeInTheDocument();
-        expect(consoleError).toHaveBeenCalledOnce();
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't load your files. If the issue persists, contact the site administrator.",
+        );
+        expect(await screen.findByRole("alert")).not.toHaveTextContent(
+            "Database unavailable",
+        );
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Loading assigned header files failed",
+            {
+                code: "PGRST116",
+                message: "Database unavailable",
+            },
+        );
         consoleError.mockRestore();
     });
 
@@ -187,6 +194,9 @@ describe("Home", () => {
         );
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't prepare this download. If the issue persists, contact the site administrator.",
+        );
+        expect(await screen.findByRole("alert")).not.toHaveTextContent(
             "Storage unavailable",
         );
         expect(supabaseMocks.storageFrom).toHaveBeenCalledWith("headers");
@@ -195,7 +205,10 @@ describe("Home", () => {
             60,
             { download: true },
         );
-        expect(consoleError).toHaveBeenCalledOnce();
+        expect(consoleError).toHaveBeenCalledWith(
+            "[RT-Radio] Preparing download for header header-1 failed",
+            { message: "Storage unavailable" },
+        );
         consoleError.mockRestore();
     });
 });
