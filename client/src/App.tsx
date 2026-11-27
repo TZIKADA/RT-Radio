@@ -1,6 +1,6 @@
 import { Routes, Route, useLocation } from "react-router";
 import { Container } from "react-bootstrap";
-import RequireAuth from "./components/RequireAuth";
+import RequireAuth from "./auth/RequireAuth";
 import AdminErrorAlert from "./components/AdminErrorAlert";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -10,7 +10,7 @@ import Home from "./pages/Home";
 import Account from "./pages/Account";
 import Contact from "./pages/Contact";
 import { LanguageProvider, useTranslation } from "./components/LanguageProvider";
-import { useAuth } from "./scripts/useAuth";
+import { useAuth } from "./auth/useAuth";
 
 function AppRoutes() {
     const { authError } = useAuth();
