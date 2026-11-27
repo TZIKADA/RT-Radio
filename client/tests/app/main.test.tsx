@@ -42,7 +42,7 @@ describe("application entry point", () => {
         expect(rootMocks.render).toHaveBeenCalledOnce();
         const markup = renderToStaticMarkup(rootMocks.render.mock.calls[0][0]);
         expect(markup).toContain("Unable to start RT-Radio");
-        expect(markup).toContain("Please notify the site administrator");
+        expect(markup).toContain("Contact information");
         expect(markup).not.toContain("VITE_SUPABASE_URL");
         expect(consoleError).toHaveBeenCalledWith(
             "[RT-Radio] Missing Supabase configuration",

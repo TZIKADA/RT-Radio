@@ -107,7 +107,7 @@ describe("Login", () => {
             "We couldn't sign you in. Check your details and try again.",
         );
         expect(await screen.findByRole("alert")).toHaveTextContent(
-            "notify the site administrator:",
+            "If the issue persists, contact the site administrator.",
         );
         expect(consoleError).toHaveBeenCalledWith(
             "[RT-Radio] Signing in failed",
@@ -280,8 +280,11 @@ describe("SignUp", () => {
         await user.click(screen.getByRole("button", { name: "Sign Up" }));
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
-            "Please try again. If it still fails, notify the site administrator:",
+            "We couldn't complete that request. Please try again.",
         );
+        expect(
+            screen.getByRole("link", { name: "contact the site administrator." }),
+        ).toHaveAttribute("href", "/contact.html");
         expect(await screen.findByRole("alert")).not.toHaveTextContent(
             "Sign-up unavailable",
         );
@@ -356,8 +359,11 @@ describe("ForgotPassword", () => {
         );
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
-            "Please try again. If it still fails, notify the site administrator:",
+            "We couldn't complete that request. Please try again.",
         );
+        expect(
+            screen.getByRole("link", { name: "contact the site administrator." }),
+        ).toHaveAttribute("href", "/contact.html");
         expect(consoleError).toHaveBeenCalledWith(
             "[RT-Radio] Requesting password reset failed",
             { message: "Email service unavailable" },
@@ -427,8 +433,11 @@ describe("ResetPassword", () => {
         );
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
-            "Please try again. If it still fails, notify the site administrator:",
+            "We couldn't complete that request. Please try again.",
         );
+        expect(
+            screen.getByRole("link", { name: "contact the site administrator." }),
+        ).toHaveAttribute("href", "/contact.html");
         expect(consoleError).toHaveBeenCalledWith(
             "[RT-Radio] Resetting password failed",
             { message: "Password update failed" },

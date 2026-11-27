@@ -1,11 +1,12 @@
 import { useState, type SubmitEvent } from "react";
 import { Link, Navigate } from "react-router";
-import { Alert, Button, Form } from "react-bootstrap";
+import { Button, Form } from "react-bootstrap";
 import AuthCard from "../components/AuthCard";
 import { useAuth } from "../scripts/useAuth";
 import { supabase } from "../lib/supabase";
 import { useTranslation } from "../components/LanguageProvider";
-import { logAppError, withAdminContact } from "../lib/errors";
+import AdminErrorAlert from "../components/AdminErrorAlert";
+import { logAppError } from "../lib/errors";
 
 export default function Login() {
     const { session, loading } = useAuth();
@@ -35,11 +36,11 @@ export default function Login() {
 
             if (signInError) {
                 logAppError("Signing in failed", signInError);
-                setError(withAdminContact(t("signInFailed")));
+                setError(t("signInFailed"));
             }
         } catch (signInError) {
             logAppError("Signing in failed", signInError);
-            setError(withAdminContact(t("signInFailed")));
+            setError(t("signInFailed"));
         } finally {
             setBusy(false);
         }
@@ -48,7 +49,7 @@ export default function Login() {
     return (
         <AuthCard title="RT-Radio">
             <Form onSubmit={handleSubmit}>
-                {error && <Alert variant="danger">{error}</Alert>}
+                {error && <AdminErrorAlert message={error} />}
 
                 <Form.Group className="mb-3" controlId="email">
                     <Form.Label>{t("email")}</Form.Label>

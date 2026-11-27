@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Card, Container, Row, Col } from "react-bootstrap";
+import { Button, Card, Container, Row, Col } from "react-bootstrap";
 import { Link } from "react-router";
 import AppControls from "../components/AppControls";
+import AdminErrorAlert from "../components/AdminErrorAlert";
 import { useTranslation } from "../components/LanguageProvider";
-import { logAppError, withAdminContact } from "../lib/errors";
+import { logAppError } from "../lib/errors";
 import { supabase } from "../lib/supabase";
 
 type HeaderRecord = {
@@ -50,7 +51,7 @@ export default function Home() {
                 setHeaders(data ?? []);
             } catch (loadError) {
                 logAppError("Loading assigned header files failed", loadError);
-                setError(withAdminContact(t("headersLoadFailed")));
+                setError(t("headersLoadFailed"));
             } finally {
                 setLoading(false);
             }
@@ -72,7 +73,7 @@ export default function Home() {
             window.location.assign(data.signedUrl);
         } catch (downloadError) {
             logAppError(`Preparing download for header ${header.id} failed`, downloadError);
-            setDownloadError(withAdminContact(t("downloadFailed")));
+            setDownloadError(t("downloadFailed"));
         } finally {
             setDownloadingId(null);
         }
@@ -101,14 +102,10 @@ export default function Home() {
                 </div>
 
                 {error && (
-                    <Alert variant="danger" role="alert">
-                        {error}
-                    </Alert>
+                    <AdminErrorAlert message={error} />
                 )}
                 {downloadError && (
-                    <Alert variant="danger" role="alert">
-                        {downloadError}
-                    </Alert>
+                    <AdminErrorAlert message={downloadError} />
                 )}
                 {loading && (
                     <p className="text-muted">{t("loadingHeaders")}</p>
