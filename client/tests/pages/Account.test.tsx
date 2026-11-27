@@ -8,10 +8,18 @@ import { AuthContext } from "../../src/auth/auth-context";
 
 const supabaseMocks = vi.hoisted(() => ({
     updateUser: vi.fn(),
+    signOut: vi.fn(),
+    rpc: vi.fn(),
 }));
 
 vi.mock("../../src/lib/supabase", () => ({
-    supabase: { auth: { updateUser: supabaseMocks.updateUser } },
+    supabase: {
+        auth: {
+            updateUser: supabaseMocks.updateUser,
+            signOut: supabaseMocks.signOut,
+        },
+        rpc: supabaseMocks.rpc,
+    },
 }));
 
 describe("Account", () => {
@@ -21,6 +29,8 @@ describe("Account", () => {
 
     beforeEach(() => {
         supabaseMocks.updateUser.mockResolvedValue({ error: null });
+        supabaseMocks.signOut.mockResolvedValue({ error: null });
+        supabaseMocks.rpc.mockResolvedValue({ error: null });
     });
 
     function renderAccount() {
@@ -162,5 +172,91 @@ describe("Account", () => {
             "[RT-Radio] Updating account password failed",
             updateError,
         );
+    });
+    it("signs out of the current device", async () => {
+        const user = userEvent.setup();
+        renderAccount();
+
+        await user.click(screen.getByRole("button", { name: "Sign out" }));
+
+        expect(supabaseMocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    });
+
+    it("shows an error when signing out fails", async () => {
+        const user = userEvent.setup();
+        supabaseMocks.signOut.mockResolvedValue({
+            error: new Error("network"),
+        });
+        vi.spyOn(console, "error").mockImplementation(() => {});
+        renderAccount();
+
+        await user.click(screen.getByRole("button", { name: "Sign out" }));
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't complete that request.",
+        );
+    });
+
+    it("asks for confirmation before deleting the account", async () => {
+        const user = userEvent.setup();
+        renderAccount();
+
+        await user.click(
+            screen.getByRole("button", { name: "Delete account" }),
+        );
+
+        expect(supabaseMocks.rpc).not.toHaveBeenCalled();
+        expect(
+            screen.getByText(
+                "Delete your account permanently? This can't be undone.",
+            ),
+        ).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+        expect(supabaseMocks.rpc).not.toHaveBeenCalled();
+        expect(
+            screen.queryByText(
+                "Delete your account permanently? This can't be undone.",
+            ),
+        ).not.toBeInTheDocument();
+    });
+
+    it("deletes the account and clears the local session", async () => {
+        const user = userEvent.setup();
+        renderAccount();
+
+        await user.click(
+            screen.getByRole("button", { name: "Delete account" }),
+        );
+        await user.click(
+            screen.getByRole("button", { name: "Delete account" }),
+        );
+
+        expect(supabaseMocks.rpc).toHaveBeenCalledWith("delete_own_account");
+        await vi.waitFor(() =>
+            expect(supabaseMocks.signOut).toHaveBeenCalledWith({
+                scope: "local",
+            }),
+        );
+    });
+
+    it("keeps the session and shows an error when deletion fails", async () => {
+        const user = userEvent.setup();
+        supabaseMocks.rpc.mockResolvedValue({ error: new Error("denied") });
+        vi.spyOn(console, "error").mockImplementation(() => {});
+        renderAccount();
+
+        await user.click(
+            screen.getByRole("button", { name: "Delete account" }),
+        );
+        await user.click(
+            screen.getByRole("button", { name: "Delete account" }),
+        );
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "We couldn't complete that request.",
+        );
+        expect(supabaseMocks.signOut).not.toHaveBeenCalled();
     });
 });

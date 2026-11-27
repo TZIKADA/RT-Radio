@@ -36,6 +36,10 @@ grouped into `app/`, `auth/`, `components/`, `pages/`, and `lib/`.
 4. **Manage your account**
     - Open **Account** to update your Supabase Auth email address or password.
       Email changes may require confirmation based on your Supabase settings.
+      The Account page also lets you sign out of the current device and
+      permanently delete your account. Deleting an account calls the
+      `api.delete_own_account()` database function, so run
+      `supabase/delete-own-account.sql` in the Supabase SQL editor first.
 5. **Choose a language**
     - English, Hebrew, Russian, and Arabic are available. The app follows the
       browser's preferred language on first visit (English when unsupported)
