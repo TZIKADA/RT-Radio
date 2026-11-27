@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchLatestGitHubRelease } from "../../src/lib/github-releases";
+import { fetchGitHubRelease } from "../../src/lib/github-releases";
 
 const API_URL = "https://api.github.com/repos/example/header/releases/latest";
+const TAG_API_URL =
+    "https://api.github.com/repos/example/header/releases/tags/default-v1.2.3";
 
 const releasePayload = {
     name: "Header v1",
@@ -22,7 +24,7 @@ const releasePayload = {
 
 const fetchMock = vi.fn();
 
-describe("fetchLatestGitHubRelease", () => {
+describe("fetchGitHubRelease", () => {
     beforeEach(() => {
         vi.stubGlobal("fetch", fetchMock);
         fetchMock.mockReset();
@@ -38,7 +40,7 @@ describe("fetchLatestGitHubRelease", () => {
             json: async () => releasePayload,
         });
 
-        await expect(fetchLatestGitHubRelease(API_URL)).resolves.toEqual({
+        await expect(fetchGitHubRelease(API_URL)).resolves.toEqual({
             title: "Header v1",
             notes: "First release",
             tag: "v1.0.0",
@@ -63,10 +65,32 @@ describe("fetchLatestGitHubRelease", () => {
         );
     });
 
-    it("rejects API URLs that do not point to a GitHub latest release", async () => {
+    it("accepts API URLs for a specific tagged release", async () => {
+        fetchMock.mockResolvedValue({
+            ok: true,
+            json: async () => releasePayload,
+        });
+
+        await expect(fetchGitHubRelease(TAG_API_URL)).resolves.toMatchObject({
+            tag: "v1.0.0",
+        });
+        expect(fetchMock).toHaveBeenCalledWith(
+            new URL(TAG_API_URL),
+            expect.objectContaining({
+                headers: { Accept: "application/vnd.github+json" },
+            }),
+        );
+    });
+
+    it("rejects API URLs that do not point to a supported GitHub release", async () => {
         await expect(
-            fetchLatestGitHubRelease("https://example.com/releases/latest"),
-        ).rejects.toThrow("Header has an invalid GitHub latest-release URL.");
+            fetchGitHubRelease("https://example.com/releases/latest"),
+        ).rejects.toThrow("Header has an invalid GitHub release API URL.");
+        await expect(
+            fetchGitHubRelease(
+                "https://api.github.com/repos/example/header/releases/tags/v1.2.3",
+            ),
+        ).rejects.toThrow("Header has an invalid GitHub release API URL.");
         expect(fetchMock).not.toHaveBeenCalled();
     });
 });
