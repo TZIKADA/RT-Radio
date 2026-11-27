@@ -1,6 +1,9 @@
 name: Sync Slave Headers to Supabase
 
 on:
+  workflow_run:
+    workflows: ["Slave Header Release"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
