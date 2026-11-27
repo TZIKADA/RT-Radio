@@ -1,6 +1,5 @@
 import { useState, type SubmitEvent } from "react";
 import { Alert, Button, Card, Container, Form } from "react-bootstrap";
-import { Link } from "react-router";
 import { MIN_PASSWORD_LENGTH } from "../scripts/auth";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../scripts/useAuth";
